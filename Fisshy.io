@@ -1,0 +1,4656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Fishy.io</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#0c2233; font-family:'Segoe UI',Tahoma,Verdana,sans-serif; }
+  #gameCanvas { display:block; background:linear-gradient(180deg,#164a63,#0c2233); }
+
+  .overlay {
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(8,26,40,0.92);
+    z-index:50;
+  }
+  .hidden { display:none !important; }
+
+  .panel {
+    background:#12374d;
+    border:1px solid rgba(210,232,240,0.14);
+    border-radius:14px;
+    padding:28px 32px;
+    width:min(92vw,480px);
+    max-height:88vh;
+    overflow-y:auto;
+    box-shadow:0 12px 30px rgba(0,0,0,0.25);
+    color:#eaf4f7;
+    text-align:center;
+    animation:popIn .2s ease-out;
+  }
+  @keyframes popIn { from{ transform:scale(0.96); opacity:0;} to{transform:scale(1); opacity:1;} }
+
+  .title {
+    font-size:2.3em; font-weight:700; letter-spacing:0.5px;
+    color:#eaf4f7;
+    margin-bottom:4px;
+  }
+  .subtitle { color:#8fb4c4; font-size:0.82em; margin-bottom:18px; letter-spacing:2px; text-transform:uppercase;}
+
+  .profile-row {
+    display:flex; align-items:center; gap:12px; justify-content:center; margin:14px 0 20px;
+    background:rgba(255,255,255,0.04); padding:10px 14px; border-radius:10px;
+  }
+  #avatarPreview { width:46px; height:46px; border-radius:50%; background:#1c4a63; display:flex; align-items:center; justify-content:center; }
+  #usernameInput {
+    background:rgba(0,0,0,0.2); border:1px solid rgba(210,232,240,0.2); border-radius:8px;
+    color:#eaf4f7; padding:9px 12px; font-size:1em; width:170px; outline:none; text-align:center;
+  }
+  #usernameInput:focus { border-color:#5c9aad; }
+
+  .currency-pill {
+    display:inline-flex; align-items:center; gap:6px;
+    background:rgba(210,180,120,0.1); border:1px solid rgba(210,180,120,0.3);
+    padding:6px 14px; border-radius:16px; font-weight:700; color:#d9b979;
+    margin-bottom:16px; font-size:0.9em;
+  }
+
+  .btn {
+    display:block; width:100%; padding:13px; margin:9px 0;
+    border:none; border-radius:10px; font-size:1.05em; font-weight:700; letter-spacing:0.5px;
+    cursor:pointer; transition:filter .15s ease;
+    color:#0c2233;
+  }
+  .btn:hover { filter:brightness(1.08); }
+  .btn:active { filter:brightness(0.95); }
+  .btn-primary { background:#5c9aad; color:#08222e; }
+  .btn-secondary { background:#7fb0a8; color:#08222e; }
+  .btn-ghost {
+    background:transparent; border:1px solid rgba(210,232,240,0.25); color:#cfe4ec;
+  }
+  .btn-ghost:hover { background:rgba(255,255,255,0.05); }
+  .btn-danger { background:#b06a5c; color:#2a0f0a;}
+
+  .quest-box {
+    background:rgba(255,255,255,0.04); border:1px solid rgba(210,232,240,0.12);
+    border-radius:10px; padding:14px 16px; margin:10px 0; text-align:left;
+  }
+  .quest-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;}
+  .quest-diff { font-size:0.68em; padding:3px 9px; border-radius:8px; font-weight:700; letter-spacing:0.5px;}
+  .diff-Easy { background:rgba(127,176,168,0.18); color:#a8d0c6; }
+  .diff-Medium { background:rgba(217,185,121,0.18); color:#d9b979; }
+  .diff-Hard { background:rgba(176,106,92,0.2); color:#d99a8a; }
+  .quest-title { font-weight:700; font-size:0.95em; margin-bottom:2px;}
+  .quest-reward { color:#d9b979; font-size:0.82em; font-weight:700; }
+  .quest-progress-bg { background:rgba(255,255,255,0.08); border-radius:6px; height:7px; margin-top:8px; overflow:hidden;}
+  .quest-progress-fill { background:#5c9aad; height:100%; width:0%; transition:width .3s ease; }
+  .quest-timer { font-size:0.7em; color:#7096a4; margin-top:6px; text-align:right; }
+
+  #wheelWrap { position:relative; display:flex; justify-content:center; margin:16px 0 10px; }
+  #wheelCanvas { transition: transform 4.2s cubic-bezier(0.12,0.85,0.13,1); transform:rotate(0deg); }
+  #wheelPointer {
+    position:absolute; top:-6px; left:50%; transform:translateX(-50%);
+    width:0; height:0; z-index:2;
+    border-left:11px solid transparent; border-right:11px solid transparent;
+    border-top:18px solid #d9b979;
+    filter:drop-shadow(0 2px 3px rgba(0,0,0,0.35));
+  }
+  #wheelResult {
+    min-height:1.4em; text-align:center; font-weight:700; font-size:0.95em;
+    color:#d9b979; margin-bottom:12px;
+  }
+  #spinBtn:disabled { opacity:0.4; cursor:not-allowed; filter:none; }
+
+  .skins-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:16px 0; }
+  .skin-card {
+    background:rgba(255,255,255,0.04); border:1px solid rgba(210,232,240,0.12); border-radius:10px;
+    padding:12px; cursor:pointer; transition:border-color .15s ease; position:relative;
+  }
+  .skin-card:hover { border-color:rgba(210,232,240,0.35); }
+  .skin-card.owned { border-color:rgba(127,176,168,0.4); }
+  .skin-card.equipped { border-color:#5c9aad; background:rgba(92,154,173,0.12); }
+  .skin-card.rarity-golden { box-shadow:0 0 12px rgba(232,201,77,0.3); border-color:rgba(232,201,77,0.35); }
+  .skin-card.rarity-amethyst { box-shadow:0 0 14px rgba(163,116,217,0.35); border-color:rgba(163,116,217,0.4); }
+  .skin-card.rarity-blood { box-shadow:0 0 16px rgba(217,82,77,0.4); border-color:rgba(217,82,77,0.45); }
+  .skin-card.rarity-exclusive { box-shadow:0 0 18px rgba(0,0,0,0.6); border-color:rgba(255,255,255,0.25); }
+  .skin-rarity { font-size:0.7em; font-weight:700; letter-spacing:0.5px; margin-bottom:4px; }
+  .skin-rarity.rarity-plain { color:#7096a4; }
+  .skin-rarity.rarity-golden { color:#e8c94d; }
+  .skin-rarity.rarity-amethyst { color:#a374d9; }
+  .skin-rarity.rarity-blood { color:#d9524d; }
+  .skin-rarity.rarity-exclusive { color:#cfcfcf; }
+  .skin-card.rarity-golden { box-shadow:0 0 12px rgba(232,211,71,0.35); border-color:rgba(232,211,71,0.4); }
+  .skin-card.rarity-amethyst { box-shadow:0 0 15px rgba(163,109,224,0.4); border-color:rgba(163,109,224,0.45); }
+  .skin-card.rarity-blood { box-shadow:0 0 18px rgba(217,60,46,0.45); border-color:rgba(217,60,46,0.5); }
+  .skin-card.rarity-exclusive { box-shadow:0 0 20px rgba(20,20,26,0.7),0 0 8px rgba(160,140,220,0.3); border-color:rgba(20,20,26,0.8); }
+  .rarity-label { font-size:0.68em; font-weight:700; letter-spacing:0.5px; margin-top:2px; }
+  .rarity-label.rarity-Plain { color:#7096a4; }
+  .rarity-label.rarity-Golden { color:#e8d347; }
+  .rarity-label.rarity-Amethyst { color:#a36de0; }
+  .rarity-label.rarity-Blood { color:#e05c46; }
+  .rarity-label.rarity-Exclusive { color:#c9c9d9; }
+  .skin-canvas-wrap { display:flex; justify-content:center; margin-bottom:8px; }
+  .skin-name { font-weight:700; font-size:0.88em; margin-bottom:4px; }
+  .skin-price { font-size:0.78em; color:#d9b979; font-weight:700;}
+  .skin-status { font-size:0.72em; color:#a8d0c6; font-weight:700; margin-top:4px;}
+  .empty-note { color:#7096a4; font-size:0.85em; padding:20px 10px; }
+
+  .row { display:flex; gap:10px; }
+  .row .btn { flex:1; }
+
+  #hud {
+    position:fixed; top:0; left:0; right:0; padding:14px 18px; display:flex; justify-content:space-between;
+    align-items:flex-start; z-index:20; pointer-events:none; font-weight:700;
+  }
+  .hud-pill {
+    background:rgba(12,34,51,0.65); border:1px solid rgba(210,232,240,0.15); border-radius:10px;
+    padding:8px 14px; color:#eaf4f7; font-size:0.92em;
+    pointer-events:auto;
+  }
+  #leaderboard { display:flex; flex-direction:column; gap:4px; min-width:150px; }
+  #leaderboard .lb-title { font-size:0.72em; color:#8fb4c4; letter-spacing:1px; margin-bottom:4px;}
+  #leaderboard .lb-entry { font-size:0.8em; display:flex; justify-content:space-between; gap:10px; }
+  #leaderboard .lb-entry.me { color:#a8d0c6; }
+
+  #miniQuest {
+    position:fixed; bottom:14px; left:14px; z-index:20;
+    background:rgba(12,34,51,0.72); border:1px solid rgba(210,232,240,0.15); border-radius:10px;
+    padding:10px 14px; color:#eaf4f7; font-size:0.78em; max-width:230px;
+  }
+  #miniQuest .mini-quest-row { margin-bottom:6px; }
+  #miniQuest .mini-quest-row:last-child { margin-bottom:0; }
+  #miniQuest .quest-progress-bg { margin-top:4px; }
+
+  #questToast {
+    position:fixed; top:80px; left:50%; transform:translateX(-50%) translateY(-20px);
+    background:#5c9aad; color:#08222e; font-weight:700;
+    padding:13px 24px; border-radius:12px; box-shadow:0 6px 16px rgba(0,0,0,0.25);
+    z-index:60; opacity:0; transition:all .35s ease; pointer-events:none; text-align:center;
+  }
+  #questToast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  #joystickZone { position:fixed; inset:0; z-index:15; touch-action:none; }
+  #joystickBase {
+    position:fixed; width:100px; height:100px; border-radius:50%;
+    background:rgba(255,255,255,0.06); border:2px solid rgba(255,255,255,0.2); display:none; z-index:16;
+  }
+  #joystickThumb {
+    position:fixed; width:46px; height:46px; border-radius:50%;
+    background:rgba(92,154,173,0.55); border:2px solid rgba(255,255,255,0.4); display:none; z-index:17;
+  }
+
+  .close-x {
+    position:absolute; top:14px; right:16px; background:none; border:none; color:#8fb4c4;
+    font-size:1.4em; cursor:pointer; line-height:1;
+  }
+  .close-x:hover { color:#fff; }
+
+  #gameOverPanel { border-color:rgba(176,106,92,0.35); }
+  .go-stats { display:flex; justify-content:space-around; margin:16px 0; }
+  .go-stat { text-align:center; }
+  .go-stat .val { font-size:1.5em; font-weight:700; color:#5c9aad; }
+  .go-stat .lbl { font-size:0.72em; color:#8fb4c4; letter-spacing:1px; text-transform:uppercase;}
+
+  ::-webkit-scrollbar { width:6px; }
+  ::-webkit-scrollbar-thumb { background:rgba(210,232,240,0.25); border-radius:6px; }
+
+  .icon { width:1em; height:1em; vertical-align:-0.15em; display:inline-block; }
+  .icon-lg { width:1.6em; height:1.6em; vertical-align:-0.35em; }
+  .btn .icon, .close-x .icon { margin-right:4px; }
+
+  .boss-timer-pill {
+    display:inline-flex; align-items:center; gap:8px;
+    background:rgba(176,106,92,0.12); border:1px solid rgba(176,106,92,0.35);
+    padding:6px 14px; border-radius:16px; font-weight:700; color:#d99a8a;
+    margin-bottom:16px; font-size:0.9em;
+  }
+  .boss-timer-pill.active { background:rgba(217,90,70,0.22); border-color:#d95a46; color:#ffb3a0; }
+
+  #dashBtn {
+    position:fixed; z-index:21; display:none;
+    left:14px; bottom:220px;
+    width:78px; height:78px; border-radius:50%;
+    background:rgba(217,90,70,0.55); border:2px solid rgba(255,255,255,0.45);
+    color:#fff; font-weight:700; font-size:0.8em; letter-spacing:0.5px;
+    align-items:center; justify-content:center; text-align:center;
+    -webkit-user-select:none; user-select:none;
+    box-shadow:0 4px 14px rgba(0,0,0,0.35);
+  }
+  #dashBtn.on { background:rgba(217,90,70,0.8); transform:translate(0,0) scale(0.94); }
+  #dashBtn .icon { width:1.8em; height:1.8em; margin:0; }
+  #dashBtn { flex-direction:column; gap:2px; }
+
+  #bossHud {
+    position:fixed; top:64px; left:50%; transform:translateX(-50%);
+    z-index:20; display:none; flex-direction:column; align-items:center; gap:4px;
+    pointer-events:none;
+  }
+  #bossHud .boss-name { color:#ffb3a0; font-weight:800; font-size:1.05em; letter-spacing:1px; text-shadow:0 1px 4px rgba(0,0,0,0.6); }
+  #bossHealthBg { width:260px; height:10px; background:rgba(12,34,51,0.65); border:1px solid rgba(217,90,70,0.5); border-radius:6px; overflow:hidden; }
+  #bossHealthFill { height:100%; background:#d95a46; width:100%; transition:width .3s ease; }
+  #bossHud.stunned #bossHealthFill { background:#e8d347; }
+  #bossHud.stunned .boss-name { color:#e8d347; }
+
+  .boss-warn-overlay {
+    position:fixed; top:110px; left:50%; transform:translateX(-50%);
+    z-index:22; display:none; color:#ffb3a0; font-weight:700; font-size:0.95em;
+    background:rgba(12,34,51,0.7); border:1px solid rgba(217,90,70,0.4); border-radius:10px;
+    padding:8px 16px; text-align:center; pointer-events:none;
+  }
+</style>
+</head>
+<body>
+
+<!-- SVG ICON DEFS -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="icon-fish" viewBox="0 0 24 24">
+      <path d="M2 12c3-4 8-6 13-6 3 0 5.5 1.6 7 4-1.5 2.4-4 4-7 4-5 0-10-2-13-2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M15 8l4-3.2v3.2m0 4v3.2L15 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <circle cx="6.6" cy="10.6" r="0.9" fill="currentColor"/>
+    </symbol>
+    <symbol id="icon-shell" viewBox="0 0 24 24">
+      <path d="M12 3c4.5 1 8 5 8 10.2 0 .7-.9 1-1.3.4C17.4 11.4 15 10 12 10s-5.4 1.4-6.7 3.6c-.4.6-1.3.3-1.3-.4C4 8 7.5 4 12 3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M12 10v7M9 12.5v4.2M15 12.5v4.2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      <path d="M6.5 17.5c1.6 1.6 3.6 2.5 5.5 2.5s3.9-.9 5.5-2.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-shop" viewBox="0 0 24 24">
+      <path d="M4 8l1.4-4h13.2L20 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M4 8h16v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M9 12a3 3 0 0 0 6 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-bag" viewBox="0 0 24 24">
+      <path d="M6 9a6 6 0 0 1 12 0v2H6V9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M4.5 11h15l-1.2 9.2a1.5 1.5 0 0 1-1.5 1.3H7.2a1.5 1.5 0 0 1-1.5-1.3L4.5 11z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-close" viewBox="0 0 24 24">
+      <path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-play" viewBox="0 0 24 24">
+      <path d="M6 4.5v15l14-7.5-14-7.5z" fill="currentColor"/>
+    </symbol>
+    <symbol id="icon-retry" viewBox="0 0 24 24">
+      <path d="M4 12a8 8 0 1 1 2.7 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M4 17v-5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-menu" viewBox="0 0 24 24">
+      <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24">
+      <path d="M4 12.5l5 5L20 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-back" viewBox="0 0 24 24">
+      <path d="M14 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-wave" viewBox="0 0 24 24">
+      <path d="M2 8c2-2 4-2 6 0s4 2 6 0 4-2 6 0M2 14c2-2 4-2 6 0s4 2 6 0 4-2 6 0M2 20c2-2 4-2 6 0s4 2 6 0 4-2 6 0" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-wheel" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <path d="M12 3v18M3 12h18M5.5 5.5l13 13M18.5 5.5l-13 13" stroke="currentColor" stroke-width="1.3"/>
+      <circle cx="12" cy="12" r="1.6" fill="currentColor"/>
+    </symbol>
+    <symbol id="icon-skull" viewBox="0 0 24 24">
+      <path d="M12 3c-4.4 0-7.5 3.1-7.5 7 0 2.5 1.2 4.2 2.5 5.4V18a1 1 0 0 0 1 1h.6v1.5a1 1 0 0 0 1 1h1v-1.5h2v1.5h1a1 1 0 0 0 1-1V19h.6a1 1 0 0 0 1-1v-2.6c1.3-1.2 2.5-2.9 2.5-5.4 0-3.9-3.1-7-7.5-7z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+      <circle cx="9" cy="10.5" r="1.4" fill="currentColor"/>
+      <circle cx="15" cy="10.5" r="1.4" fill="currentColor"/>
+      <path d="M11 12.5l-.8 2h1.6l-.8-2z" fill="currentColor"/>
+    </symbol>
+    <symbol id="icon-dash" viewBox="0 0 24 24">
+      <path d="M3 12h11M10 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M15 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/>
+    </symbol>
+    <symbol id="icon-tooth" viewBox="0 0 24 24">
+      <path d="M12 3c-3 0-6 1.6-6 5.2 0 3 1.2 5 2 8.3.3 1.4.8 3.5 2 3.5.9 0 1-1.7 1.2-3 .2-1.1.4-1.9.8-1.9s.6.8.8 1.9c.2 1.3.3 3 1.2 3 1.2 0 1.7-2.1 2-3.5.8-3.3 2-5.3 2-8.3C18 4.6 15 3 12 3z" fill="currentColor"/>
+    </symbol>
+  </defs>
+</svg>
+
+<canvas id="gameCanvas"></canvas>
+
+<!-- HUD (during gameplay) -->
+<div id="hud" class="hidden">
+  <div class="hud-pill" id="sizePill">Size: 10</div>
+  <div class="boss-timer-pill hud-pill" id="bossTimerPillHud"><svg class="icon"><use href="#icon-skull"/></svg> <span id="bossTimerTextHud">Boss in --:--</span></div>
+  <div id="leaderboard" class="hud-pill">
+    <div class="lb-title">LEADERBOARD</div>
+    <div id="lbList"></div>
+  </div>
+</div>
+<div id="miniQuest" class="hidden">
+  <div id="miniQuestList"></div>
+</div>
+<div id="questToast"></div>
+<div id="bossHud">
+  <div class="boss-name" id="bossNameLbl">The Megalodon</div>
+  <div id="bossHealthBg"><div id="bossHealthFill"></div></div>
+</div>
+<div class="boss-warn-overlay" id="bossWarnOverlay"></div>
+<div id="dashBtn"><svg class="icon"><use href="#icon-dash"/></svg><br>DASH</div>
+
+<!-- Mobile joystick -->
+<div id="joystickZone"></div>
+<div id="joystickBase"></div>
+<div id="joystickThumb"></div>
+
+<!-- MAIN MENU -->
+<div class="overlay" id="mainMenu">
+  <div class="panel">
+    <div class="title"><svg class="icon-lg"><use href="#icon-fish"/></svg> Fishy.io</div>
+    <div class="subtitle">grow • hunt • survive</div>
+
+    <div class="profile-row">
+      <div id="avatarPreview"><canvas id="avatarCanvas" width="40" height="40"></canvas></div>
+      <input id="usernameInput" type="text" maxlength="14" placeholder="Your name">
+    </div>
+
+    <div class="currency-pill"><svg class="icon"><use href="#icon-shell"/></svg> <span id="currencyDisplay">0</span> Fishy Food</div>
+    <div class="boss-timer-pill" id="bossTimerPill"><svg class="icon"><use href="#icon-skull"/></svg> <span id="bossTimerText">Boss in --:--</span></div>
+
+    <div id="questListMenu"></div>
+    <div class="quest-timer" id="questTimerMenu" style="text-align:center; margin:2px 0 14px;">refreshes in --:--</div>
+
+    <button class="btn btn-primary" id="startBtn"><svg class="icon"><use href="#icon-play"/></svg> START GAME</button>
+    <div class="row">
+      <button class="btn btn-secondary" id="shopBtn"><svg class="icon"><use href="#icon-shop"/></svg> Shop</button>
+      <button class="btn btn-ghost" id="inventoryBtn"><svg class="icon"><use href="#icon-bag"/></svg> Inventory</button>
+    </div>
+    <button class="btn btn-ghost" id="wheelBtn" style="margin-top:2px;"><svg class="icon"><use href="#icon-wheel"/></svg> Spin the Wheel</button>
+    <button class="btn btn-ghost" id="achievementsBtn" style="margin-top:2px;"><svg class="icon"><use href="#icon-check"/></svg> Achievements</button>
+  </div>
+</div>
+
+<!-- SHOP MENU -->
+<div class="overlay hidden" id="shopMenu">
+  <div class="panel" style="position:relative;">
+    <button class="close-x" id="closeShopBtn"><svg class="icon"><use href="#icon-close"/></svg></button>
+    <div class="title" style="font-size:1.9em;">Shop</div>
+    <div class="currency-pill"><svg class="icon"><use href="#icon-shell"/></svg> <span id="currencyDisplayShop">0</span> Fishy Food</div>
+    <div class="skins-grid" id="skinsGrid"></div>
+    <button class="btn btn-ghost" id="backFromShopBtn"><svg class="icon"><use href="#icon-back"/></svg> Back to Menu</button>
+  </div>
+</div>
+
+<!-- INVENTORY MENU -->
+<div class="overlay hidden" id="inventoryMenu">
+  <div class="panel" style="position:relative;">
+    <button class="close-x" id="closeInventoryBtn"><svg class="icon"><use href="#icon-close"/></svg></button>
+    <div class="title" style="font-size:1.9em;">Inventory</div>
+    <div class="subtitle" style="margin-bottom:14px;">tap a skin to equip it</div>
+    <div class="skins-grid" id="inventoryGrid"></div>
+    <button class="btn btn-ghost" id="backFromInventoryBtn"><svg class="icon"><use href="#icon-back"/></svg> Back to Menu</button>
+  </div>
+</div>
+
+<!-- ACHIEVEMENTS MENU -->
+<div class="overlay hidden" id="achievementsMenu">
+  <div class="panel" style="position:relative;">
+    <button class="close-x" id="closeAchievementsBtn"><svg class="icon"><use href="#icon-close"/></svg></button>
+    <div class="title" style="font-size:1.9em;">Achievements</div>
+    <div class="subtitle" style="margin-bottom:14px;">one-time Fishy Food rewards</div>
+    <div id="achievementsList" style="text-align:left; max-height:50vh; overflow-y:auto;"></div>
+    <button class="btn btn-ghost" id="backFromAchievementsBtn" style="margin-top:10px;"><svg class="icon"><use href="#icon-back"/></svg> Back to Menu</button>
+  </div>
+</div>
+
+<!-- SPIN WHEEL MENU -->
+<div class="overlay hidden" id="wheelMenu">
+  <div class="panel" style="position:relative;">
+    <button class="close-x" id="closeWheelBtn"><svg class="icon"><use href="#icon-close"/></svg></button>
+    <div class="title" style="font-size:1.9em;">Spin the Wheel</div>
+    <div class="subtitle" style="margin-bottom:10px;">one free spin per day</div>
+    <div id="wheelWrap">
+      <div id="wheelPointer"></div>
+      <canvas id="wheelCanvas" width="280" height="280"></canvas>
+    </div>
+    <div id="wheelResult"></div>
+    <button class="btn btn-primary" id="spinBtn">SPIN</button>
+    <button class="btn btn-ghost" id="backFromWheelBtn"><svg class="icon"><use href="#icon-back"/></svg> Back to Menu</button>
+  </div>
+</div>
+
+<!-- GAME OVER -->
+<div class="overlay hidden" id="gameOverMenu">
+  <div class="panel" id="gameOverPanel">
+    <div class="title" style="font-size:2em; color:#d99a8a; -webkit-text-fill-color:#d99a8a;">You Got Eaten!</div>
+    <div class="go-stats">
+      <div class="go-stat"><div class="val" id="finalSize">0</div><div class="lbl">Final Size</div></div>
+      <div class="go-stat"><div class="val" id="finalScore">0</div><div class="lbl">Score</div></div>
+      <div class="go-stat"><div class="val" id="earnedFood">0</div><div class="lbl">Earned <svg class="icon"><use href="#icon-shell"/></svg></div></div>
+    </div>
+    <button class="btn btn-primary" id="retryBtn"><svg class="icon"><use href="#icon-retry"/></svg> RETRY</button>
+    <button class="btn btn-ghost" id="menuBtn"><svg class="icon"><use href="#icon-menu"/></svg> Main Menu</button>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============ CANVAS / RESIZE ============ */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+function resize(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+resize();
+window.addEventListener('resize', resize);
+
+/* ============ WORLD CONSTANTS ============ */
+const WORLD_W = 4000, WORLD_H = 4000;
+const NUM_AI = 20;
+const NUM_FOOD = 260;
+const BASE_SPEED = 2.6;
+
+/* ============ BOSS / DASH CONSTANTS ============ */
+const BOSS_SPAWN_INTERVAL = 20*60*1000; // 20 minutes, ms
+const TOTEM_SIZES = [100,110,120,130];
+const TOTEM_DROP_COUNT = 10;
+const TOTEM_DROP_SIZE = 10;
+const DASH_DRAIN_PER_SEC = 4; // size lost per second of dashing
+const DASH_SPEED_MULT = 2.6;
+const MEGALODON_SPEED = 3.4;
+const MEGALODON_SIZE = 260;
+const ATTACK_TELEGRAPH_MS = 3000;
+const DASH_ATTACK_WIDTH = 46;
+const JAW_BOX_LEN = 130, JAW_BOX_WIDE = 90;
+const TOOTHDROP_DURATION_MS = 15000;
+const TOOTHDROP_INTERVAL_MS = 1800;
+const TOOTHDROP_RADIUS = 34;
+
+/* ============ BESSIE CONSTANTS ============ */
+const BESSIE_SIZE = 250;
+const BESSIE_SPEED = 3.3;
+const BESSIE_RUN_SPEED = 8.4;
+const BESSIE_ATTACKS_BEFORE_STUN = 3;
+const BESSIE_STUN_MS = 5000;
+const WATERJET_DURATION_MS = 3000;
+const WATERJET_WIDTH = 54;
+const WATERJET_RANGE = 6500;
+const TSUNAMI_RUN_MS = 3000;
+const TSUNAMI_BURST_MS = 3000;
+const TSUNAMI_RADIUS = 260;
+const TSUNAMI_BAND = 55;
+const WHIRLPOOL_COUNT = 3;
+const WHIRLPOOL_RADIUS = 150;
+const WHIRLPOOL_DURATION_MS = 10000;
+const WHIRLPOOL_DRAIN_PER_SEC = 1;
+
+/* ============ SAVE DATA ============ */
+const SAVE_KEY = 'fishyio_save_v1';
+function loadSave(){
+  let s;
+  try { s = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch(e){ s = null; }
+  if(!s) s = {};
+  if(typeof s.currency !== 'number') s.currency = 0;
+  if(!Array.isArray(s.ownedSkins) || s.ownedSkins.length===0) s.ownedSkins = ['classic'];
+  if(!s.activeSkin) s.activeSkin = 'classic';
+  if(!s.username) s.username = 'Guest' + Math.floor(Math.random()*9000+1000);
+  if(!s.questState) s.questState = null; // {hourKey, questId, progress, completed}
+  if(!Array.isArray(s.totemsEatenRun)) s.totemsEatenRun = [];
+  if(typeof s.megalodonDefeated !== 'boolean') s.megalodonDefeated = false;
+  if(typeof s.bessieDefeated !== 'boolean') s.bessieDefeated = false;
+  if(!s.lifetime) s.lifetime = {};
+  const lt = s.lifetime;
+  if(typeof lt.totalKills !== 'number') lt.totalKills = 0;
+  if(typeof lt.totalCritters !== 'number') lt.totalCritters = 0;
+  if(typeof lt.totalFood !== 'number') lt.totalFood = 0;
+  if(typeof lt.maxSize !== 'number') lt.maxSize = 0;
+  if(typeof lt.gamesPlayed !== 'number') lt.gamesPlayed = 0;
+  if(typeof lt.totemsEaten !== 'number') lt.totemsEaten = 0;
+  if(typeof lt.bossKills !== 'number') lt.bossKills = 0;
+  if(typeof lt.dashesUsed !== 'number') lt.dashesUsed = 0;
+  if(!Array.isArray(s.achievementsClaimed)) s.achievementsClaimed = [];
+  return s;
+}
+let save = loadSave();
+function persist(){ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }
+
+/* ============ ACHIEVEMENTS (a second way to earn Fishy Food) ============ */
+const ACHIEVEMENTS = [
+  { id:'kills10', label:'Eat 10 fish (lifetime)', check:s=>s.lifetime.totalKills>=10, reward:15 },
+  { id:'kills50', label:'Eat 50 fish (lifetime)', check:s=>s.lifetime.totalKills>=50, reward:40 },
+  { id:'kills200', label:'Eat 200 fish (lifetime)', check:s=>s.lifetime.totalKills>=200, reward:100 },
+  { id:'critters20', label:'Eat 20 critters (lifetime)', check:s=>s.lifetime.totalCritters>=20, reward:25 },
+  { id:'critters75', label:'Eat 75 critters (lifetime)', check:s=>s.lifetime.totalCritters>=75, reward:70 },
+  { id:'food1000', label:'Eat 1000 food pellets (lifetime)', check:s=>s.lifetime.totalFood>=1000, reward:30 },
+  { id:'size100', label:'Reach size 100 in a match', check:s=>s.lifetime.maxSize>=100, reward:30 },
+  { id:'size200', label:'Reach size 200 in a match', check:s=>s.lifetime.maxSize>=200, reward:60 },
+  { id:'size350', label:'Reach size 350 in a match', check:s=>s.lifetime.maxSize>=350, reward:120 },
+  { id:'totems5', label:'Destroy 5 totems (lifetime)', check:s=>s.lifetime.totemsEaten>=5, reward:35 },
+  { id:'totems20', label:'Destroy 20 totems (lifetime)', check:s=>s.lifetime.totemsEaten>=20, reward:90 },
+  { id:'bossKill1', label:'Defeat a boss for the first time', check:s=>s.lifetime.bossKills>=1, reward:80 },
+  { id:'bossKill5', label:'Defeat 5 bosses (lifetime)', check:s=>s.lifetime.bossKills>=5, reward:180 },
+  { id:'games10', label:'Play 10 matches', check:s=>s.lifetime.gamesPlayed>=10, reward:25 },
+  { id:'games50', label:'Play 50 matches', check:s=>s.lifetime.gamesPlayed>=50, reward:90 },
+  { id:'dash100', label:'Use dash 100 times (lifetime)', check:s=>s.lifetime.dashesUsed>=100, reward:35 },
+  { id:'ownSkins10', label:'Own 10 different skins', check:s=>s.ownedSkins.length>=10, reward:40 },
+  { id:'ownSkins25', label:'Own 25 different skins', check:s=>s.ownedSkins.length>=25, reward:100 },
+  { id:'megalodonDefeatedAch', label:'Defeat The Megalodon', check:s=>s.megalodonDefeated, reward:70 },
+  { id:'bessieDefeatedAch', label:'Defeat Bessie', check:s=>s.bessieDefeated, reward:70 }
+];
+function checkAchievements(){
+  let changed = false;
+  for(const a of ACHIEVEMENTS){
+    if(save.achievementsClaimed.includes(a.id)) continue;
+    if(a.check(save)){
+      save.achievementsClaimed.push(a.id);
+      save.currency += a.reward;
+      showToast(`Achievement unlocked: ${a.label} (+${a.reward} Fishy Food)`);
+      changed = true;
+    }
+  }
+  if(changed){ persist(); updateCurrencyDisplays(); }
+}
+function renderAchievements(){
+  const list = document.getElementById('achievementsList');
+  list.innerHTML = ACHIEVEMENTS.map(a=>{
+    const done = save.achievementsClaimed.includes(a.id);
+    return `<div class="quest-box" style="opacity:${done?1:0.6}">
+      <div class="quest-header">
+        <span class="quest-title">${a.label}</span>
+        <span class="quest-diff ${done?'diff-Easy':'diff-Medium'}">${done?'Claimed':'+'+a.reward}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ============ SKINS ============ */
+// Each skin is a draw function(ctx, r, tailPhase) drawing a fish of "radius" r centered at 0,0 facing right (+x)
+const SKINS = {
+  classic: {
+    name:'Classic', price:0,
+    colors:['#5c9aad','#cfe4ec'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  sand: {
+    name:'Sandy', price:40,
+    colors:['#d3b98c','#f2e6cf'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  seafoam: {
+    name:'Seafoam', price:50,
+    colors:['#7fb0a8','#dcefe9'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  slate: {
+    name:'Slate', price:50,
+    colors:['#6b7c88','#c9d4d9'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  azure: {
+    name:'Azure Glider', price:80,
+    colors:['#3d7ea6','#cfeaff'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  coral: {
+    name:'Coral Reef', price:70,
+    colors:['#c9847a','#f2d8d2'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,'#f7f0ea',[[-0.25,-0.15],[0.05,0.2],[-0.45,0.15]]);
+    }
+  },
+  kelp: {
+    name:'Kelp', price:90,
+    colors:['#4d7a5c','#c8ddc3'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  pearl: {
+    name:'Pearl', price:100,
+    colors:['#e6e2d6','#ffffff'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  ink: {
+    name:'Inkspot', price:120,
+    colors:['#1f3a4f','#7fa8bd'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,'#dfeef4',[[-0.3,-0.1],[-0.05,0.22],[-0.5,0.05],[0.1,-0.28]]);
+    }
+  },
+  shark: {
+    name:'Shark Fin', price:150,
+    colors:['#7a8894','#dde3e7'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      c.save();
+      c.fillStyle = '#5c6570';
+      c.beginPath();
+      c.moveTo(-r*0.08,-r*0.5);
+      c.lineTo(r*0.14,-r*1.25);
+      c.lineTo(r*0.38,-r*0.45);
+      c.closePath();
+      c.fill();
+      c.restore();
+    }
+  },
+  driftwood: {
+    name:'Driftwood', price:110,
+    colors:['#8a6f52','#d9c8ab'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  storm: {
+    name:'Storm Grey', price:160,
+    colors:['#4a5560','#9fb0ba'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,'#c7d2d8',0.4);
+    }
+  },
+  arctic: {
+    name:'Arctic Frost', price:170,
+    colors:['#cfeaff','#5c9aad'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,'#3d7ea6',0.4);
+    }
+  },
+  camo: {
+    name:'Camo Diver', price:190,
+    colors:['#5c6b4a','#93a37b'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,'#414d33',[[-0.2,-0.18],[0.15,0.15],[-0.45,0.12]],0.24);
+    }
+  },
+  golden: {
+    name:'Golden Scale', price:220,
+    colors:['#c9a24d','#f2e0ad'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,'#f7ecc9',0.55);
+    }
+  },
+  abyss: {
+    name:'Abyss', price:260,
+    colors:['#101f2c','#33505f'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,'#cfeaff',[[-0.3,-0.2],[0.0,0.18],[-0.5,0.08],[0.15,-0.3]],0.06);
+    }
+  },
+  crowned: {
+    name:'Royal Crown', price:240,
+    colors:['#6b5c8f','#d8cdea'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      c.save();
+      c.translate(r*0.15,-r*0.95);
+      c.fillStyle = '#d9b979';
+      c.beginPath();
+      c.moveTo(-r*0.42,0);
+      c.lineTo(-r*0.42,-r*0.26);
+      c.lineTo(-r*0.2,-r*0.05);
+      c.lineTo(0,-r*0.38);
+      c.lineTo(r*0.2,-r*0.05);
+      c.lineTo(r*0.42,-r*0.26);
+      c.lineTo(r*0.42,0);
+      c.closePath();
+      c.fill();
+      c.restore();
+    }
+  },
+  pixel: {
+    name:'Pixel Fish', price:130,
+    colors:['#5c9aad','#e8a23d'],
+    draw(c,r,tail,colors){ drawPixelFish(c,r,tail,colors[0],colors[1]); }
+  },
+  seaglass: {
+    name:'Sea Glass', price:75,
+    colors:['#8fbfae','#e2f0e8'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  lagoon: {
+    name:'Lagoon', price:95,
+    colors:['#2f8f8a','#bdeae4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,'#bdeae4',0.45);
+    }
+  },
+  tidepool: {
+    name:'Tidepool', price:115,
+    colors:['#3d6b7d','#a3c9d4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,'#e5f2f6',[[-0.25,-0.15],[0.05,0.2],[-0.45,0.15]]);
+    }
+  },
+  urchin: {
+    name:'Urchin', price:135,
+    colors:['#4a3f6b','#9d8bc9'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,'#2c2545',[[-0.2,-0.2],[0.2,-0.2],[-0.35,0.1],[0.15,0.2],[-0.05,-0.32]],0.05);
+    }
+  },
+  moonlight: {
+    name:'Moonlight', price:145,
+    colors:['#324b66','#9db4cc'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,'#dce8f2',0.5);
+    }
+  },
+  seaturtle: {
+    name:'Sea Turtle', price:155,
+    colors:['#5c7a4a','#a8c48a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,'#37502c',[[-0.15,-0.1],[0.1,0.15],[-0.35,0.12],[0.15,-0.15]],0.09);
+    }
+  },
+  bioluminescent: {
+    name:'Bioluminous', price:200,
+    colors:['#1a2b3d','#4de0d6'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,'#4de0d6',[[-0.3,-0.2],[0.0,0.18],[-0.5,0.08],[0.15,-0.3]],0.055);
+    }
+  },
+  angelfish: {
+    name:'Angelfish', price:175,
+    colors:['#e8d9a8','#4a4a6b'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,'#4a4a6b',0.3);
+      drawStripe(c,r,'#4a4a6b',0.6);
+    }
+  },
+  clownfish: {
+    name:'Clownfish', price:105,
+    colors:['#d9713d','#f2eee4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,'#f2eee4',0.45);
+    }
+  },
+  deepsea: {
+    name:'Deep Sea', price:280,
+    colors:['#060f18','#274456'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      c.save();
+      c.strokeStyle = '#4de0d6';
+      c.lineWidth = Math.max(1,r*0.05);
+      c.beginPath();
+      c.moveTo(r*0.85,-r*0.05);
+      c.lineTo(r*1.25,-r*0.55);
+      c.stroke();
+      c.fillStyle = '#4de0d6';
+      c.beginPath();
+      c.arc(r*1.25,-r*0.55,r*0.09,0,Math.PI*2);
+      c.fill();
+      c.restore();
+    }
+  },
+  pixelReef: {
+    name:'Pixel Reef', price:150,
+    colors:['#3d8f7a','#e8a23d'],
+    draw(c,r,tail,colors){ drawPixelFish(c,r,tail,colors[0],colors[1]); }
+  },
+  rainbow: {
+    name:'Rainbow Fish', price:260,
+    colors:['#e0e6ea','#ffffff'],
+    draw(c,r,tail,colors){ drawRainbowFish(c,r,tail,colors); }
+  },
+  koi: {
+    name:'Koi', price:230,
+    colors:['#f2ede0','#2a2a2a'],
+    draw(c,r,tail,colors){ drawKoiFish(c,r,tail,'#f2ede0','#d9713d','#2a2a2a'); }
+  },
+  chinese: {
+    name:'Dragon Scale', price:250,
+    colors:['#b5342c','#d9b45a'],
+    draw(c,r,tail,colors){ drawChineseFish(c,r,tail,colors[0],colors[1]); }
+  },
+  butterflyfish: {
+    name:'Butterflyfish', price:120,
+    colors:['#e0c847','#2a2a2a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,'#2a2a2a',0.18);
+    }
+  },
+  mangrove: {
+    name:'Mangrove', price:85,
+    colors:['#6b5638','#a68a5f'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  stingray: {
+    name:'Stingray', price:210,
+    colors:['#4a5a63','#8fa3ab'],
+    draw(c,r,tail,colors){
+      c.save();
+      c.fillStyle = colors[0];
+      c.beginPath();
+      c.moveTo(r*1.1,0);
+      c.quadraticCurveTo(r*0.3,-r*1.05,-r*0.9,-r*0.2);
+      c.quadraticCurveTo(-r*1.1,0,-r*0.9,r*0.2);
+      c.quadraticCurveTo(r*0.3,r*1.05,r*1.1,0);
+      c.closePath();
+      c.fill();
+      c.strokeStyle = 'rgba(12,34,51,0.25)';
+      c.lineWidth = Math.max(1,r*0.04);
+      c.stroke();
+      c.strokeStyle = colors[0];
+      c.lineWidth = Math.max(1,r*0.08);
+      const wag = Math.sin(tail)*0.3;
+      c.beginPath();
+      c.moveTo(-r*0.85,0);
+      c.quadraticCurveTo(-r*1.5,wag*r*0.5,-r*1.9,wag*r);
+      c.stroke();
+      c.fillStyle = '#0c2233';
+      c.beginPath(); c.arc(r*0.3,-r*0.1,r*0.07,0,Math.PI*2); c.fill();
+      c.beginPath(); c.arc(r*0.3,r*0.1,r*0.07,0,Math.PI*2); c.fill();
+      c.restore();
+    }
+  },
+  jellyfish: {
+    name:'Jellysoul', price:190,
+    colors:['#c9a3d9','#e8d3f0'],
+    draw(c,r,tail,colors){
+      c.save();
+      c.fillStyle = colors[0];
+      c.globalAlpha = 0.85;
+      c.beginPath();
+      c.arc(0,-r*0.1,r*0.75,Math.PI,0);
+      c.closePath();
+      c.fill();
+      c.globalAlpha = 1;
+      c.strokeStyle = colors[1];
+      c.lineWidth = Math.max(1,r*0.06);
+      for(let i=-2;i<=2;i++){
+        const sway = Math.sin(tail+i)*r*0.15;
+        c.beginPath();
+        c.moveTo(i*r*0.22,-r*0.1);
+        c.quadraticCurveTo(i*r*0.22+sway, r*0.5, i*r*0.22+sway*1.4, r*1.0);
+        c.stroke();
+      }
+      c.restore();
+    }
+  },
+  sunrise: {
+    name:'Sunrise', price:165,
+    colors:['#e88a3d','#f2d67a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.5);
+    }
+  },
+  glassfish: {
+    name:'Glassfish', price:145,
+    colors:['#cfe4ec','#8fb4c4'],
+    draw(c,r,tail,colors){
+      c.save();
+      c.globalAlpha = 0.55;
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      c.restore();
+    }
+  },
+  volcanic: {
+    name:'Volcanic', price:270,
+    colors:['#2a1a1a','#d9502c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.5);
+      drawDots(c,r,colors[1],[[-0.35,0.1],[0.15,-0.2]],0.06);
+    }
+  },
+  tidewalkerReef: {
+    name:'Tidewalker Reef', price:130,
+    colors:['#3d6b8a','#a3c9d4'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  brinebelly: {
+    name:'Brinebelly', price:95,
+    colors:['#6b8f8a','#dcefe9'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.6);
+    }
+  },
+  saltspray: {
+    name:'Saltspray', price:115,
+    colors:['#8fa3ab','#e5f2f6'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.3,-0.15],[0.1,0.2],[-0.1,-0.3]],0.07);
+    }
+  },
+  obsidianDepths: {
+    name:'Obsidian Depths', price:300,
+    colors:['#0e0e14','#3a3a4a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,'#5c5c74',0.5);
+    }
+  },
+  pearlescent: {
+    name:'Pearlescent', price:220,
+    colors:['#e8e0ec','#c9a3d9'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.4);
+    }
+  },
+  emeraldfin: {
+    name:'Emerald Fin', price:180,
+    colors:['#2f8f5c','#a8e0bd'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  tigerfish: {
+    name:'Tiger Fish', price:200,
+    colors:['#e0973d','#2a2a2a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.2);
+      drawStripe(c,r,colors[1],0.5);
+      drawStripe(c,r,colors[1],0.8);
+    }
+  },
+  frostbite: {
+    name:'Frostbite', price:175,
+    colors:['#a3d4e0','#f0fbff'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.1,0.15]],0.08);
+    }
+  },
+  copperfin: {
+    name:'Copperfin', price:140,
+    colors:['#b5713a','#e8c89a'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  tidewalker: {
+    name:'Tidewalker', price:95,
+    colors:['#5a7d8a','#c3dae0'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  duskfin: {
+    name:'Duskfin', price:130,
+    colors:['#4a3a5c','#9d84b8'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  brackish: {
+    name:'Brackish', price:80,
+    colors:['#6b7355','#b3bc94'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  saltmarsh: {
+    name:'Saltmarsh', price:100,
+    colors:['#7a8f6b','#d6e0c4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.3,-0.15],[0.15,0.15]],0.06);
+    }
+  },
+  harborlight: {
+    name:'Harborlight', price:150,
+    colors:['#e8c05a','#3d4a52'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.55);
+    }
+  },
+  seafoamGlow: {
+    name:'Seafoam Glow', price:160,
+    colors:['#7fd9c4','#e0f7f0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.1,0.2],[-0.4,0.1]],0.05);
+    }
+  },
+  obsidian: {
+    name:'Obsidian', price:220,
+    colors:['#0f0f14','#3d3d4a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,'#5c5c6e',0.5);
+    }
+  },
+  ivory: {
+    name:'Ivory', price:130,
+    colors:['#f2ede0','#d9c9a8'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  crimsonTide: {
+    name:'Crimson Tide', price:190,
+    colors:['#8f2f2a','#d9705a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.4);
+    }
+  },
+  pixelTide: {
+    name:'Pixel Tide', price:145,
+    colors:['#4a7d8a','#e8d347'],
+    draw(c,r,tail,colors){ drawPixelFish(c,r,tail,colors[0],colors[1]); }
+  },
+  megalodonBone: {
+    name:'Megalodon Fang', price:0, exclusive:true,
+    colors:['#2a2a2a','#e5e5e5'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      c.save();
+      c.fillStyle = colors[1];
+      for(let i=0;i<4;i++){
+        c.beginPath();
+        c.moveTo(r*0.5+i*r*0.14, -r*0.5);
+        c.lineTo(r*0.56+i*r*0.14, -r*0.28);
+        c.lineTo(r*0.44+i*r*0.14, -r*0.28);
+        c.closePath();
+        c.fill();
+      }
+      c.strokeStyle = 'rgba(12,34,51,0.3)';
+      c.lineWidth = Math.max(1,r*0.04);
+      c.beginPath();
+      c.ellipse(0,0,r*1.0,r*0.72,0,0,Math.PI*2);
+      c.stroke();
+      c.restore();
+    }
+  },
+  brine: {
+    name:'Brine', price:75,
+    colors:['#4a5c52','#a3bcae'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  tidalGlass: {
+    name:'Tidal Glass', price:110,
+    colors:['#6a8fa3','#dceef5'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.2,-0.15],[0.2,0.1]],0.07);
+    }
+  },
+  reefKing: {
+    name:'Reef King', price:200,
+    colors:['#2f6b5c','#e0a83d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.5);
+      drawDots(c,r,colors[1],[[-0.35,-0.1]],0.06);
+    }
+  },
+  frostbyte: {
+    name:'Frostbyte', price:175,
+    colors:['#7fa8c9','#eaf4fb'],
+    draw(c,r,tail,colors){ drawPixelFish(c,r,tail,colors[0],colors[1]); }
+  },
+  mudskipper: {
+    name:'Mudskipper', price:65,
+    colors:['#6b5a45','#a8977a'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  neonReef: {
+    name:'Neon Reef', price:215,
+    colors:['#3dd9c4','#e874d1'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  ghostfish: {
+    name:'Ghostfish', price:160,
+    colors:['#cfe0e6','#f5fbfc'],
+    draw(c,r,tail,colors){
+      c.save();
+      c.globalAlpha = 0.4;
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      c.restore();
+    }
+  },
+  emberTide: {
+    name:'Ember Tide', price:180,
+    colors:['#b5502f','#e8a23d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.5);
+    }
+  },
+  moray: {
+    name:'Moray', price:135,
+    colors:['#5c4a3d','#8a7359'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,'#3d2f26',[[-0.3,-0.1],[0.1,0.2],[-0.5,0.1]],0.06);
+    }
+  },
+  evilFish: {
+    name:'Evil Fish', price:0, exclusive:true,
+    colors:['#1a0d0d','#c92e2e'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      c.save();
+      // menacing red slit eye instead of the normal round eye look
+      c.fillStyle = colors[1];
+      c.beginPath();
+      c.ellipse(r*0.55,-r*0.14,r*0.13,r*0.045,0.15,0,Math.PI*2);
+      c.fill();
+      // jagged teeth along the front
+      c.fillStyle = '#e8e8e8';
+      for(let i=0;i<4;i++){
+        c.beginPath();
+        c.moveTo(r*0.55+i*r*0.1, r*0.18);
+        c.lineTo(r*0.6+i*r*0.1, r*0.34);
+        c.lineTo(r*0.5+i*r*0.1, r*0.34);
+        c.closePath();
+        c.fill();
+      }
+      // spiked dorsal fin
+      c.fillStyle = colors[1];
+      for(let i=-1;i<=1;i++){
+        c.beginPath();
+        c.moveTo(i*r*0.22,-r*0.55);
+        c.lineTo(i*r*0.22+r*0.06,-r*1.05);
+        c.lineTo(i*r*0.22+r*0.14,-r*0.5);
+        c.closePath();
+        c.fill();
+      }
+      c.restore();
+    }
+  },
+  barnacleCrust: {
+    name:'Barnacle Crust', price:50,
+    colors:['#8a8272','#c4bca8'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  kelpDrifter: {
+    name:'Kelp Drifter', price:60,
+    colors:['#4a6b4d','#9dbf9a'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  sandbar: {
+    name:'Sandbar', price:55,
+    colors:['#c9b585','#f0e4c4'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  tidepebble: {
+    name:'Tidepebble', price:65,
+    colors:['#7a8a94','#c4d0d6'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  cobaltCurrent: {
+    name:'Cobalt Current', price:120,
+    colors:['#2f5c9e','#a3c4e8'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.4);
+    }
+  },
+  amberwave: {
+    name:'Amberwave', price:125,
+    colors:['#c98a2f','#f0d49a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  violetDeep: {
+    name:'Violet Deep', price:150,
+    colors:['#5c3d7d','#b89dd9'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  jadeCurrent: {
+    name:'Jade Current', price:155,
+    colors:['#2f7d5c','#a3e0c4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  opaline: {
+    name:'Opaline', price:195,
+    colors:['#a8c9d9','#f0e8f5'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+    }
+  },
+  prismScale: {
+    name:'Prism Scale', price:205,
+    colors:['#4a7d9e','#e8d9f0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+    }
+  },
+  auroralFin: {
+    name:'Auroral Fin', price:230,
+    colors:['#2f8f7a','#8ae0c9'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+    }
+  },
+  nebulaTide: {
+    name:'Nebula Tide', price:245,
+    colors:['#3d2f6b','#a389e0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.4);
+    }
+  },
+  starlitCurrent: {
+    name:'Starlit Current', price:260,
+    colors:['#1f3a5c','#c9d9f0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+    }
+  },
+  solarFlare: {
+    name:'Solar Flare', price:275,
+    colors:['#c9502f','#f0c94d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.5);
+    }
+  },
+  voidCurrent: {
+    name:'Void Current', price:290,
+    colors:['#0a0a12','#5c4a8a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+    }
+  },
+  celestialKoi: {
+    name:'Celestial Koi', price:310,
+    colors:['#f2ede0','#2a2a2a'],
+    draw(c,r,tail,colors){
+      drawKoiFish(c,r,tail,'#f2ede0','#5c8fd9','#2a2a2a');
+    }
+  },
+  phantomTide: {
+    name:'Phantom Tide', price:330,
+    colors:['#cfe0e6','#f5fbfc'],
+    draw(c,r,tail,colors){
+      c.save();
+      c.globalAlpha = 0.55;
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      c.restore();
+    }
+  },
+  emberglass: {
+    name:'Emberglass', price:350,
+    colors:['#8f2f1f','#f0a23d'],
+    draw(c,r,tail,colors){
+      c.save();
+      c.globalAlpha = 0.85;
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      c.restore();
+      drawStripe(c,r,colors[1],0.5);
+    }
+  },
+  krakenScale: {
+    name:'Kraken Scale', price:380,
+    colors:['#0f1f24','#3d6b6b'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.3,-0.2],[0.15,0.15],[-0.15,0.25],[0.25,-0.15]],0.06);
+      c.save();
+      c.fillStyle = colors[1];
+      for(let i=-1;i<=1;i++){
+        c.beginPath();
+        c.moveTo(i*r*0.2,-r*0.55);
+        c.lineTo(i*r*0.2+r*0.05,-r*1.0);
+        c.lineTo(i*r*0.2+r*0.12,-r*0.5);
+        c.closePath();
+        c.fill();
+      }
+      c.restore();
+    }
+  },
+  leviathan: {
+    name:'Leviathan', price:420,
+    colors:['#0c1a26','#e8d347'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],'#3d5a6e');
+      drawStripe(c,r,colors[1],0.5);
+      c.save();
+      c.fillStyle = colors[1];
+      for(let i=-1;i<=1;i++){
+        c.beginPath();
+        c.moveTo(i*r*0.24,-r*0.55);
+        c.lineTo(i*r*0.24+r*0.07,-r*1.15);
+        c.lineTo(i*r*0.24+r*0.16,-r*0.5);
+        c.closePath();
+        c.fill();
+      }
+      c.restore();
+    }
+  },
+  bessieHide: {
+    name:'Bessie Hide', price:0, exclusive:true,
+    colors:['#3d6b7d','#8fb4c0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      c.save();
+      c.fillStyle = colors[0];
+      for(let i=-1;i<=1;i++){
+        c.beginPath();
+        c.arc(i*r*0.3,-r*0.5,r*0.16,Math.PI,0);
+        c.fill();
+      }
+      c.restore();
+    }
+  },
+  coralDust: {
+    name:'Coral Dust', price:45,
+    colors:['#c98a7a','#f0d4c9'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  reedWalker: {
+    name:'Reed Walker', price:52,
+    colors:['#6b8f5c','#c4d9a3'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  shaleFin: {
+    name:'Shale Fin', price:58,
+    colors:['#5c6570','#a3adb8'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  muddyCurrent: {
+    name:'Muddy Current', price:62,
+    colors:['#6b5a45','#a8967a'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  bayLeaf: {
+    name:'Bay Leaf', price:68,
+    colors:['#4a7a4d','#a3c9a3'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  driftglass: {
+    name:'Driftglass', price:72,
+    colors:['#7a9ab5','#d4e5f0'],
+    draw(c,r,tail,colors){
+      c.save(); c.globalAlpha = 0.75; drawBasicFish(c,r,tail,colors[0],colors[1]); c.restore();
+    }
+  },
+  palewater: {
+    name:'Palewater', price:78,
+    colors:['#a3c4c9','#e5f0f2'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  copperReed: {
+    name:'Copper Reed', price:85,
+    colors:['#b5713a','#d9c89a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.1,0.2]],0.06);
+    }
+  },
+  sunfaded: {
+    name:'Sunfaded', price:92,
+    colors:['#c9a85a','#f0e3b8'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  twilightShoal: {
+    name:'Twilight Shoal', price:98,
+    colors:['#4a4a6b','#9d9dc4'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  coldwater: {
+    name:'Coldwater', price:105,
+    colors:['#5c8aa3','#cfe5ee'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.4);
+    }
+  },
+  mossback: {
+    name:'Mossback', price:110,
+    colors:['#5c7a4a','#a8c48f'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.3,-0.1],[0.15,0.2]],0.06);
+    }
+  },
+  ashenTide: {
+    name:'Ashen Tide', price:118,
+    colors:['#6b6b70','#c4c4c9'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  windward: {
+    name:'Windward', price:128,
+    colors:['#4a7d8a','#9dd4e0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.5);
+    }
+  },
+  silverline: {
+    name:'Silverline', price:135,
+    colors:['#8a94a3','#e0e5eb'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.55);
+    }
+  },
+  duskwater: {
+    name:'Duskwater', price:142,
+    colors:['#3d3d5c','#8a8ab5'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.3,-0.15],[0.15,0.2],[-0.5,0.1]],0.06);
+    }
+  },
+  coralEmber: {
+    name:'Coral Ember', price:148,
+    colors:['#c9573a','#f0a373'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  northernPike: {
+    name:'Northern Pike', price:160,
+    colors:['#4a6b4a','#9db58f'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.35,-0.1],[0.1,0.2],[-0.15,-0.28],[0.2,-0.1]],0.05);
+    }
+  },
+  marbledCurrent: {
+    name:'Marbled Current', price:168,
+    colors:['#5c7d9e','#dce5f0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.4);
+    }
+  },
+  crystalFin: {
+    name:'Crystal Fin', price:178,
+    colors:['#7ab5c9','#e5f7fb'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+    }
+  },
+  twilightPrism: {
+    name:'Twilight Prism', price:188,
+    colors:['#4a3d7d','#b39de0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+    }
+  },
+  abyssalGlow: {
+    name:'Abyssal Glow', price:198,
+    colors:['#0f1f2e','#3d8f8a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+    }
+  },
+  radiantTide: {
+    name:'Radiant Tide', price:210,
+    colors:['#2f9e7d','#8ae0c9'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+    }
+  },
+  cometScale: {
+    name:'Comet Scale', price:225,
+    colors:['#3d4a6b','#c9d4f0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+    }
+  },
+  moltenCurrent: {
+    name:'Molten Current', price:240,
+    colors:['#8f3d2f','#e88a4d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.5);
+    }
+  },
+  frozenStar: {
+    name:'Frozen Star', price:255,
+    colors:['#2f5c7d','#cfeaff'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+    }
+  },
+  twilightSovereign: {
+    name:'Twilight Sovereign', price:270,
+    colors:['#3d2f5c','#c9a3e0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  deepglowSovereign: {
+    name:'Deepglow Sovereign', price:290,
+    colors:['#0a2a2e','#3dd9c4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      c.save();
+      c.fillStyle = colors[1];
+      for(let i=-1;i<=1;i++){
+        c.beginPath();
+        c.moveTo(i*r*0.2,-r*0.55);
+        c.lineTo(i*r*0.2+r*0.05,-r*0.98);
+        c.lineTo(i*r*0.2+r*0.12,-r*0.5);
+        c.closePath();
+        c.fill();
+      }
+      c.restore();
+    }
+  },
+  astralCurrent: {
+    name:'Astral Current', price:320,
+    colors:['#1f1a3d','#8a7de0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+    }
+  },
+  titanCurrent: {
+    name:'Titan Current', price:400,
+    colors:['#141f2e','#e8b93d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],'#3d5a6e');
+      drawStripe(c,r,colors[1],0.5);
+      c.save();
+      c.fillStyle = colors[1];
+      for(let i=-1;i<=1;i++){
+        c.beginPath();
+        c.moveTo(i*r*0.24,-r*0.55);
+        c.lineTo(i*r*0.24+r*0.07,-r*1.1);
+        c.lineTo(i*r*0.24+r*0.16,-r*0.5);
+        c.closePath();
+        c.fill();
+      }
+      c.restore();
+    }
+  },
+  mintwave: {
+    name:'Mintwave', price:42,
+    colors:['#5c9e8a','#a8e0cc'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  duneglass: {
+    name:'Duneglass', price:48,
+    colors:['#c9a873','#f0e0b8'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  slateReef: {
+    name:'Slate Reef', price:55,
+    colors:['#5c6b73','#a3b3bc'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  rustyAnchor: {
+    name:'Rusty Anchor', price:60,
+    colors:['#a35c3a','#dba384'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  foglight: {
+    name:'Foglight', price:66,
+    colors:['#8a9ba3','#dbe5e8'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  paleKelp: {
+    name:'Pale Kelp', price:70,
+    colors:['#7a9e6b','#c4dbb3'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  driftSand: {
+    name:'Drift Sand', price:76,
+    colors:['#c9b58a','#f0e6cf'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  shallowBlue: {
+    name:'Shallow Blue', price:82,
+    colors:['#4a7a9e','#a8cfe0'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  duskyReef: {
+    name:'Dusky Reef', price:88,
+    colors:['#6b5c73','#a894b3'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  coveGrey: {
+    name:'Cove Grey', price:95,
+    colors:['#6b747a','#aab3b8'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  warmSand: {
+    name:'Warm Sand', price:102,
+    colors:['#d9a85c','#f2dcac'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  mossyBank: {
+    name:'Mossy Bank', price:110,
+    colors:['#5c7a4a','#a3c48a'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  brackenTide: {
+    name:'Bracken Tide', price:118,
+    colors:['#7a6b4a','#c4b38a'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  paleAsh: {
+    name:'Pale Ash', price:126,
+    colors:['#7a7a80','#c4c4cc'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  duskFin: {
+    name:'Dusk Fin', price:134,
+    colors:['#5c5c73','#9d9db3'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  goldenReef: {
+    name:'Golden Reef', price:142,
+    colors:['#c9a23d','#f0d98a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  honeyCurrent: {
+    name:'Honey Current', price:148,
+    colors:['#d9a83d','#f2dca3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  sunlitFin: {
+    name:'Sunlit Fin', price:155,
+    colors:['#c99a2f','#f0d478'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  brassTide: {
+    name:'Brass Tide', price:162,
+    colors:['#b58a3d','#e0c383'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  amberGlint: {
+    name:'Amber Glint', price:168,
+    colors:['#c98a2f','#e8b85c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  goldstreak: {
+    name:'Goldstreak', price:175,
+    colors:['#d9b03d','#f5e0a3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  daffodilFin: {
+    name:'Daffodil Fin', price:182,
+    colors:['#d9c93d','#f5eea3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  sunbeam: {
+    name:'Sunbeam', price:188,
+    colors:['#e0c94d','#f7ecac'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  marigold: {
+    name:'Marigold', price:195,
+    colors:['#e0a83d','#f2d18a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  goldenScaleII: {
+    name:'Golden Scale II', price:200,
+    colors:['#d4b23d','#f0dc9a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  goldshine: {
+    name:'Goldshine', price:204,
+    colors:['#dbb840','#f5e2a8'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  citrineTide: {
+    name:'Citrine Tide', price:208,
+    colors:['#d4c23d','#f0e6a3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  honeyglass: {
+    name:'Honeyglass', price:211,
+    colors:['#c9a83d','#eed99c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  sunfin: {
+    name:'Sunfin', price:214,
+    colors:['#d9b53d','#f2dfa3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  topazCurrent: {
+    name:'Topaz Current', price:218,
+    colors:['#c9a23d','#e8c96b'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  amethystTide: {
+    name:'Amethyst Tide', price:222,
+    colors:['#6b4a9e','#b39ddb'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  violetCurrent: {
+    name:'Violet Current', price:230,
+    colors:['#5c3d8a','#a389c9'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  lilacDeep: {
+    name:'Lilac Deep', price:238,
+    colors:['#7a5ca3','#c4aee0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  plumFin: {
+    name:'Plum Fin', price:246,
+    colors:['#5c3a6b','#9d7aad'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  mauveGlow: {
+    name:'Mauve Glow', price:254,
+    colors:['#6b4a7d','#ae8ac4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  orchidTide: {
+    name:'Orchid Tide', price:262,
+    colors:['#7d4a9e','#c49ddb'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  grapeCurrent: {
+    name:'Grape Current', price:270,
+    colors:['#5c3373','#9d6bb5'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  wisteria: {
+    name:'Wisteria', price:276,
+    colors:['#6b5299','#ae94d4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  indigoDepths: {
+    name:'Indigo Depths', price:282,
+    colors:['#4a3373','#8a6bb5'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  violetDusk: {
+    name:'Violet Dusk', price:288,
+    colors:['#5c3d8f','#a389d4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  purpleReef: {
+    name:'Purple Reef', price:292,
+    colors:['#6b3d8a','#b38ad4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  amethystShoal: {
+    name:'Amethyst Shoal', price:298,
+    colors:['#5c2f7a','#9d6bc4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  bloodtide: {
+    name:'Bloodtide', price:305,
+    colors:['#8a1f1f','#d94d4d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  crimsonAbyss: {
+    name:'Crimson Abyss', price:320,
+    colors:['#6b1414','#c93d3d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  scarletCurrent: {
+    name:'Scarlet Current', price:340,
+    colors:['#991f1f','#e05c5c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  garnetFin: {
+    name:'Garnet Fin', price:360,
+    colors:['#731919','#c43d3d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  rubyDepths: {
+    name:'Ruby Depths', price:380,
+    colors:['#8f1414','#d43d3d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  bloodmoon: {
+    name:'Bloodmoon', price:400,
+    colors:['#661010','#b52f2f'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  crimsonSovereign: {
+    name:'Crimson Sovereign', price:425,
+    colors:['#7a1a1a','#d94d4d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  bloodReaper: {
+    name:'Blood Reaper', price:450,
+    colors:['#4a0e0e','#a32f2f'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+};
+
+// Flat, minimalist fish shape: solid fills, thin outline, no gradients or glow.
+function drawBasicFish(c, r, tailPhase, colorMain, colorAccent){
+  // tail
+  c.save();
+  const tailWag = Math.sin(tailPhase)*0.5;
+  c.translate(-r*0.92,0);
+  c.rotate(tailWag*0.5);
+  c.fillStyle = colorMain;
+  c.beginPath();
+  c.moveTo(0,0);
+  c.lineTo(-r*0.72,-r*0.48);
+  c.lineTo(-r*0.72,r*0.48);
+  c.closePath();
+  c.fill();
+  c.restore();
+
+  // body — flat ellipse, single fill
+  c.fillStyle = colorMain;
+  c.beginPath();
+  c.ellipse(0,0,r*1.0,r*0.72,0,0,Math.PI*2);
+  c.fill();
+  c.strokeStyle = 'rgba(4,16,28,0.22)';
+  c.lineWidth = Math.max(1,r*0.045);
+  c.stroke();
+
+  // top fin — flat triangle
+  c.fillStyle = colorAccent;
+  c.beginPath();
+  c.moveTo(-r*0.05,-r*0.62);
+  c.lineTo(r*0.12,-r*1.0);
+  c.lineTo(r*0.28,-r*0.56);
+  c.closePath();
+  c.fill();
+
+  // eye — simple flat dot
+  c.fillStyle = '#04101c';
+  c.beginPath();
+  c.arc(r*0.52,-r*0.14,r*0.12,0,Math.PI*2);
+  c.fill();
+}
+
+// Small flat spots, positioned as [x,y] fractions of r.
+function drawDots(c, r, color, positions, size){
+  c.save();
+  c.fillStyle = color;
+  const s = (size||0.09)*r;
+  for(const [px,py] of positions){
+    c.beginPath();
+    c.arc(px*r*1.6, py*r*1.6, s, 0, Math.PI*2);
+    c.fill();
+  }
+  c.restore();
+}
+
+// Blocky pixel-art fish, built from a fixed grid of square "pixels".
+function drawPixelFish(c, r, tailPhase, colorMain, colorAccent){
+  const grid = [
+    "..0000..",
+    ".000000.",
+    "0000000T",
+    "E0000000",
+    "0000000T",
+    ".000000.",
+    "..0000.."
+  ];
+  const cols = grid[0].length, rows = grid.length;
+  const px = (r*2.1)/cols;
+  const tailStep = Math.sin(tailPhase) > 0 ? 'T' : 't';
+  c.save();
+  c.translate(-cols*px/2, -rows*px/2);
+  for(let y=0;y<rows;y++){
+    for(let x=0;x<cols;x++){
+      const ch = grid[y][x];
+      if(ch==='.') continue;
+      if(ch==='0') c.fillStyle = colorMain;
+      else if(ch==='E') c.fillStyle = '#0c2233';
+      else if(ch==='T') c.fillStyle = colorAccent;
+      else continue;
+      c.fillRect(x*px, y*px, px+0.5, px+0.5);
+    }
+  }
+  // simple flat top fin pixel accent
+  c.fillStyle = colorAccent;
+  c.fillRect(cols*0.42*px, -px*0.7, px*1.3, px*0.9);
+  c.restore();
+}
+
+// A single flat diagonal stripe across the body.
+function drawStripe(c, r, color, atX){
+  c.save();
+  c.fillStyle = color;
+  c.beginPath();
+  c.moveTo(atX*r-r*0.12,-r*0.7);
+  c.lineTo(atX*r+r*0.12,-r*0.7);
+  c.lineTo(atX*r*0.6+r*0.12,r*0.68);
+  c.lineTo(atX*r*0.6-r*0.12,r*0.68);
+  c.closePath();
+  c.fill();
+  c.restore();
+}
+
+// Small twinkling diamond sparkles — used to make higher-tier skins pop.
+function drawSparkles(c, r, tailPhase, color, positions){
+  c.save();
+  c.fillStyle = color;
+  positions.forEach(([px,py],i)=>{
+    const s = r*(0.075 + 0.02*Math.sin(tailPhase*2.4+i*1.7));
+    const cx = px*r, cy = py*r;
+    c.beginPath();
+    c.moveTo(cx, cy-s);
+    c.lineTo(cx+s*0.4, cy);
+    c.lineTo(cx, cy+s);
+    c.lineTo(cx-s*0.4, cy);
+    c.closePath();
+    c.fill();
+  });
+  c.restore();
+}
+
+// Soft outer glow ring — reserved for the priciest skins.
+function drawGlowRing(c, r, color){
+  c.save();
+  c.globalAlpha = 0.3;
+  c.strokeStyle = color;
+  c.lineWidth = Math.max(1,r*0.09);
+  c.beginPath();
+  c.ellipse(0,0,r*1.14,r*0.82,0,0,Math.PI*2);
+  c.stroke();
+  c.restore();
+}
+
+/* ============ RARITY SYSTEM ============ */
+// Plain has no glow at all. Above that, rarity is what drives the glow/sparkle
+// color — and price scales with rarity, not the other way around.
+const RARITY_ORDER = ['plain','golden','amethyst','blood','exclusive'];
+const RARITY_GLOW_COLOR = {
+  golden: '#e8c94d',
+  amethyst: '#a374d9',
+  blood: '#d9524d',
+  exclusive: '#1a1a1a'
+};
+const RARITY_LABEL = {
+  plain: 'Plain',
+  golden: 'Golden',
+  amethyst: 'Amethyst',
+  blood: 'Blood',
+  exclusive: 'Exclusive'
+};
+function rarityOf(skin){
+  if(skin.rarity) return skin.rarity;
+  if(skin.exclusive) return 'exclusive';
+  if(skin.price >= 300) return 'blood';
+  if(skin.price >= 220) return 'amethyst';
+  if(skin.price >= 140) return 'golden';
+  return 'plain';
+}
+// One shared spot where the rarity glow/sparkle actually gets drawn, on top of
+// whatever the skin's own draw() drew — so glow always matches rarity exactly.
+function applyRarityFX(c, r, tailPhase, rarity){
+  if(rarity === 'plain' || !rarity) return;
+  if(rarity === 'exclusive'){
+    // black glow needs a faint rim to actually read against the dark background
+    c.save();
+    c.globalAlpha = 0.55;
+    c.strokeStyle = 'rgba(255,255,255,0.25)';
+    c.lineWidth = Math.max(1,r*0.03);
+    c.beginPath();
+    c.ellipse(0,0,r*1.17,r*0.85,0,0,Math.PI*2);
+    c.stroke();
+    c.restore();
+    drawGlowRing(c, r, '#050505');
+    drawSparkles(c, r, tailPhase, '#1a1a1a', [[-0.3,-0.15],[0.15,0.18],[-0.5,0.1]]);
+    return;
+  }
+  const color = RARITY_GLOW_COLOR[rarity];
+  drawGlowRing(c, r, color);
+  drawSparkles(c, r, tailPhase, color, [[-0.3,-0.15],[0.15,0.18],[-0.5,0.1]]);
+}
+// Every place a fish skin gets rendered (in-game, shop preview, inventory
+// preview) should go through this so the rarity glow is always applied.
+function renderSkin(c, r, tailPhase, skinKey){
+  const skin = SKINS[skinKey] || SKINS.classic;
+  skin.draw(c, r, tailPhase, skin.colors);
+  applyRarityFX(c, r, tailPhase, rarityOf(skin));
+}
+
+// Fish with a band of rainbow colors sweeping across the flat body.
+function drawRainbowFish(c, r, tailPhase, colors){
+  drawBasicFish(c, r, tailPhase, '#8fb4c4', colors[1]);
+  const bands = ['#e05c5c','#e8a23d','#e8d347','#5cbf6b','#4d9fe0','#8a6fd9'];
+  c.save();
+  c.beginPath();
+  c.ellipse(0,0,r*1.0,r*0.72,0,0,Math.PI*2);
+  c.clip();
+  const bw = r*2.4/bands.length;
+  for(let i=0;i<bands.length;i++){
+    c.fillStyle = bands[i];
+    c.fillRect(-r*1.2 + i*bw, -r*1.2, bw+0.5, r*2.4);
+  }
+  c.restore();
+  c.strokeStyle = 'rgba(12,34,51,0.22)';
+  c.lineWidth = Math.max(1,r*0.045);
+  c.beginPath();
+  c.ellipse(0,0,r*1.0,r*0.72,0,0,Math.PI*2);
+  c.stroke();
+  c.fillStyle = '#0c2233';
+  c.beginPath(); c.arc(r*0.52,-r*0.14,r*0.12,0,Math.PI*2); c.fill();
+}
+
+// Classic koi pattern: pale body with fixed orange/black patches.
+function drawKoiFish(c, r, tailPhase, base, orange, black){
+  drawBasicFish(c, r, tailPhase, base, base);
+  c.save();
+  c.beginPath();
+  c.ellipse(0,0,r*1.0,r*0.72,0,0,Math.PI*2);
+  c.clip();
+  c.fillStyle = orange;
+  c.beginPath(); c.ellipse(-r*0.35,-r*0.15,r*0.42,r*0.3,0.3,0,Math.PI*2); c.fill();
+  c.beginPath(); c.ellipse(r*0.3,r*0.2,r*0.32,r*0.24,-0.2,0,Math.PI*2); c.fill();
+  c.fillStyle = black;
+  c.beginPath(); c.ellipse(r*0.05,-r*0.25,r*0.2,r*0.14,0.1,0,Math.PI*2); c.fill();
+  c.beginPath(); c.ellipse(-r*0.55,r*0.18,r*0.16,r*0.12,0,0,Math.PI*2); c.fill();
+  c.restore();
+  c.strokeStyle = 'rgba(12,34,51,0.22)';
+  c.lineWidth = Math.max(1,r*0.045);
+  c.beginPath();
+  c.ellipse(0,0,r*1.0,r*0.72,0,0,Math.PI*2);
+  c.stroke();
+  c.fillStyle = '#0c2233';
+  c.beginPath(); c.arc(r*0.52,-r*0.14,r*0.12,0,Math.PI*2); c.fill();
+}
+
+// Red-and-gold fish with a decorative scale pattern along the back.
+function drawChineseFish(c, r, tailPhase, red, gold){
+  drawBasicFish(c, r, tailPhase, red, gold);
+  c.save();
+  c.strokeStyle = gold;
+  c.lineWidth = Math.max(1,r*0.05);
+  for(let i=-2;i<=2;i++){
+    c.beginPath();
+    c.arc(i*r*0.32, -r*0.3, r*0.16, Math.PI*0.15, Math.PI*0.85);
+    c.stroke();
+  }
+  c.restore();
+}
+
+/* ============ QUESTS ============ */
+const QUEST_POOL = [
+  {id:'eat25', type:'eatFood', target:25, label:t=>`Eat ${t} food pellets`, diff:'Easy', reward:8},
+  {id:'eat50', type:'eatFood', target:50, label:t=>`Eat ${t} food pellets`, diff:'Easy', reward:12},
+  {id:'eat80', type:'eatFood', target:80, label:t=>`Eat ${t} food pellets`, diff:'Medium', reward:22},
+  {id:'kill3', type:'eatFish', target:3, label:t=>`Defeat ${t} AI fish`, diff:'Easy', reward:15},
+  {id:'kill5', type:'eatFish', target:5, label:t=>`Defeat ${t} AI fish`, diff:'Medium', reward:30},
+  {id:'kill8', type:'eatFish', target:8, label:t=>`Defeat ${t} AI fish`, diff:'Hard', reward:60},
+  {id:'size100', type:'reachSize', target:100, label:t=>`Reach size ${t}`, diff:'Medium', reward:35},
+  {id:'size150', type:'reachSize', target:150, label:t=>`Reach size ${t}`, diff:'Hard', reward:70},
+  {id:'size220', type:'reachSize', target:220, label:t=>`Reach size ${t}`, diff:'Hard', reward:100},
+  {id:'survive3', type:'survive', target:180, label:t=>`Survive ${t/60|0} minutes in one life`, diff:'Medium', reward:28},
+];
+const DIFF_MULT = {Easy:1, Medium:2.4, Hard:5.2};
+
+const QUESTS_PER_HOUR = 3;
+
+function currentHourKey(){
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${d.getHours()}`;
+}
+function pickQuestsForHour(hourKey){
+  // deterministic pick based on hour so it's stable across refresh within same hour
+  let hash = 0;
+  for(let i=0;i<hourKey.length;i++){ hash = (hash*31 + hourKey.charCodeAt(i)) >>> 0; }
+  const picks = [];
+  const usedIdx = new Set();
+  let seed = hash;
+  while(picks.length < QUESTS_PER_HOUR && usedIdx.size < QUEST_POOL.length){
+    seed = (seed*1103515245 + 12345) >>> 0;
+    const idx = seed % QUEST_POOL.length;
+    if(usedIdx.has(idx)) continue;
+    usedIdx.add(idx);
+    picks.push(QUEST_POOL[idx]);
+  }
+  return picks;
+}
+function getActiveQuestDefs(){
+  const hourKey = currentHourKey();
+  if(!save.questState || save.questState.hourKey !== hourKey){
+    const picks = pickQuestsForHour(hourKey);
+    save.questState = {
+      hourKey,
+      quests: picks.map(q=>({ questId:q.id, progress:0, completed:false }))
+    };
+    persist();
+  }
+  return save.questState.quests.map(qs=>({ qs, def: QUEST_POOL.find(q=>q.id===qs.questId) }));
+}
+function questTimeRemainingStr(){
+  const now = new Date();
+  const next = new Date(now); next.setMinutes(0,0,0); next.setHours(now.getHours()+1);
+  let diff = Math.max(0, next - now);
+  const m = Math.floor(diff/60000), s = Math.floor((diff%60000)/1000);
+  return `refreshes in ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+function questRewardFor(def){ return Math.round(def.reward); }
+
+function updateQuestMenuUI(){
+  const entries = getActiveQuestDefs();
+  const allDone = entries.every(e=>e.qs.completed);
+  const list = document.getElementById('questListMenu');
+  list.innerHTML = entries.map(({qs,def})=>{
+    const pct = Math.min(100, (qs.progress/def.target)*100);
+    return `<div class="quest-box">
+      <div class="quest-header">
+        <span class="quest-title">${def.label(def.target)}</span>
+        <span class="quest-diff diff-${def.diff}">${def.diff}</span>
+      </div>
+      <div class="quest-reward">${qs.completed?'<svg class="icon"><use href="#icon-check"/></svg> Complete':'+'+questRewardFor(def)+' Fishy Food'}</div>
+      <div class="quest-progress-bg"><div class="quest-progress-fill" style="width:${qs.completed?100:pct}%"></div></div>
+    </div>`;
+  }).join('');
+  document.getElementById('questTimerMenu').innerHTML = allDone ? '<svg class="icon"><use href="#icon-check"/></svg> All quests complete — new quests next hour' : questTimeRemainingStr();
+}
+setInterval(()=>{ if(!mainMenu.classList.contains('hidden')) updateQuestMenuUI(); }, 1000);
+
+function updateMiniQuestUI(){
+  const entries = getActiveQuestDefs();
+  const list = document.getElementById('miniQuestList');
+  list.innerHTML = entries.map(({qs,def})=>{
+    if(qs.completed){
+      return `<div class="mini-quest-row"><svg class="icon"><use href="#icon-check"/></svg> ${def.label(def.target)}</div>`;
+    }
+    const pct = Math.min(100, (qs.progress/def.target)*100);
+    return `<div class="mini-quest-row">
+      ${def.label(def.target)} (${Math.min(qs.progress,def.target)}/${def.target})
+      <div class="quest-progress-bg"><div class="quest-progress-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function progressQuest(type, amount){
+  const entries = getActiveQuestDefs();
+  let changed = false;
+  for(const {qs,def} of entries){
+    if(qs.completed || def.type !== type) continue;
+    qs.progress += amount;
+    if(qs.progress >= def.target){
+      qs.progress = def.target;
+      qs.completed = true;
+      save.currency += questRewardFor(def);
+      showToast(`<svg class="icon"><use href="#icon-check"/></svg> Quest Complete! +${questRewardFor(def)} <svg class="icon"><use href="#icon-shell"/></svg>`);
+      updateCurrencyDisplays();
+    }
+    changed = true;
+  }
+  if(changed){ persist(); updateMiniQuestUI(); }
+}
+function setQuestProgressAbsolute(type, value){
+  const entries = getActiveQuestDefs();
+  let changed = false;
+  for(const {qs,def} of entries){
+    if(qs.completed || def.type !== type) continue;
+    qs.progress = Math.max(qs.progress, value);
+    if(qs.progress >= def.target){
+      qs.progress = def.target;
+      qs.completed = true;
+      save.currency += questRewardFor(def);
+      showToast(`<svg class="icon"><use href="#icon-check"/></svg> Quest Complete! +${questRewardFor(def)} <svg class="icon"><use href="#icon-shell"/></svg>`);
+      updateCurrencyDisplays();
+    }
+    changed = true;
+  }
+  if(changed){ persist(); updateMiniQuestUI(); }
+}
+
+let toastTimer=null;
+function showToast(msg){
+  const t = document.getElementById('questToast');
+  t.innerHTML = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+/* ============ UI ELEMENTS ============ */
+const mainMenu = document.getElementById('mainMenu');
+const shopMenu = document.getElementById('shopMenu');
+const gameOverMenu = document.getElementById('gameOverMenu');
+const hud = document.getElementById('hud');
+const miniQuest = document.getElementById('miniQuest');
+const usernameInput = document.getElementById('usernameInput');
+usernameInput.value = save.username;
+usernameInput.addEventListener('input', ()=>{
+  save.username = usernameInput.value.trim().slice(0,14) || 'Guest';
+  persist();
+});
+
+function updateCurrencyDisplays(){
+  document.getElementById('currencyDisplay').textContent = save.currency;
+  document.getElementById('currencyDisplayShop').textContent = save.currency;
+}
+
+/* avatar preview */
+const avatarCanvas = document.getElementById('avatarCanvas');
+const actx = avatarCanvas.getContext('2d');
+function renderAvatar(){
+  actx.clearRect(0,0,40,40);
+  actx.save();
+  actx.translate(20,20);
+  actx.scale(0.85,0.85);
+  renderSkin(actx, 15, performance.now()/200, save.activeSkin || 'classic');
+  actx.restore();
+}
+
+/* ============ SHOP ============ */
+function renderShop(){
+  const grid = document.getElementById('skinsGrid');
+  grid.innerHTML = '';
+  // cheapest first, most expensive last — exclusives (price 0, only shown once owned) sort with the free tier
+  const sortedKeys = Object.keys(SKINS).sort((a,b)=> SKINS[a].price - SKINS[b].price);
+  sortedKeys.forEach(key=>{
+    const skin = SKINS[key];
+    if(skin.exclusive && !save.ownedSkins.includes(key)) return; // hide undiscovered exclusive skins from shop
+    const owned = save.ownedSkins.includes(key);
+    const equipped = save.activeSkin === key;
+    const rarity = rarityOf(skin);
+    const card = document.createElement('div');
+    card.className = 'skin-card' + (owned?' owned':'') + (equipped?' equipped':'') + ' rarity-'+rarity;
+    const wrap = document.createElement('div');
+    wrap.className = 'skin-canvas-wrap';
+    const c = document.createElement('canvas');
+    c.width = 70; c.height = 70;
+    wrap.appendChild(c);
+    card.appendChild(wrap);
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'skin-name'; nameEl.textContent = skin.name;
+    card.appendChild(nameEl);
+
+    const rarityEl = document.createElement('div');
+    rarityEl.className = 'skin-rarity rarity-'+rarity;
+    rarityEl.textContent = RARITY_LABEL[rarity];
+    card.appendChild(rarityEl);
+
+    if(owned){
+      const status = document.createElement('div');
+      status.className = 'skin-status';
+      status.innerHTML = equipped ? '<svg class="icon"><use href="#icon-check"/></svg> Equipped' : 'Owned — tap to equip';
+      card.appendChild(status);
+    } else {
+      const price = document.createElement('div');
+      price.className = 'skin-price';
+      price.innerHTML = `<svg class="icon"><use href="#icon-shell"/></svg> ${skin.price}`;
+      card.appendChild(price);
+    }
+
+    card.addEventListener('click', ()=>{
+      if(owned){
+        if(!equipped){ save.activeSkin = key; persist(); renderShop(); renderAvatar(); }
+      } else {
+        if(save.currency >= skin.price){
+          save.currency -= skin.price;
+          save.ownedSkins.push(key);
+          save.activeSkin = key;
+          persist();
+          updateCurrencyDisplays();
+          renderShop();
+          renderAvatar();
+          showToast(`Unlocked ${skin.name}!`);
+        } else {
+          showToast(`Not enough Fishy Food <svg class="icon"><use href="#icon-shell"/></svg>`);
+        }
+      }
+    });
+
+    grid.appendChild(card);
+
+    const cctx = c.getContext('2d');
+    cctx.save();
+    cctx.translate(35,38);
+    cctx.scale(1.05,1.05);
+    renderSkin(cctx, 24, 0.6, key);
+    cctx.restore();
+  });
+}
+
+document.getElementById('shopBtn').addEventListener('click', ()=>{
+  mainMenu.classList.add('hidden');
+  shopMenu.classList.remove('hidden');
+  renderShop();
+});
+document.getElementById('closeShopBtn').addEventListener('click', closeShop);
+document.getElementById('backFromShopBtn').addEventListener('click', closeShop);
+function closeShop(){
+  shopMenu.classList.add('hidden');
+  mainMenu.classList.remove('hidden');
+  updateQuestMenuUI();
+}
+
+/* ============ INVENTORY (equip owned skins) ============ */
+const inventoryMenu = document.getElementById('inventoryMenu');
+function renderInventory(){
+  const grid = document.getElementById('inventoryGrid');
+  grid.innerHTML = '';
+  if(save.ownedSkins.length === 0){
+    grid.innerHTML = '<div class="empty-note">No skins owned yet — visit the Shop!</div>';
+    return;
+  }
+  save.ownedSkins.forEach(key=>{
+    const skin = SKINS[key];
+    if(!skin) return;
+    const equipped = save.activeSkin === key;
+    const rarity = rarityOf(skin);
+    const card = document.createElement('div');
+    card.className = 'skin-card owned' + (equipped?' equipped':'') + ' rarity-'+rarity;
+    const wrap = document.createElement('div');
+    wrap.className = 'skin-canvas-wrap';
+    const c = document.createElement('canvas');
+    c.width = 70; c.height = 70;
+    wrap.appendChild(c);
+    card.appendChild(wrap);
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'skin-name'; nameEl.textContent = skin.name;
+    card.appendChild(nameEl);
+
+    const rarityEl = document.createElement('div');
+    rarityEl.className = 'skin-rarity rarity-'+rarity;
+    rarityEl.textContent = RARITY_LABEL[rarity];
+    card.appendChild(rarityEl);
+
+    const status = document.createElement('div');
+    status.className = 'skin-status';
+    status.innerHTML = equipped ? '<svg class="icon"><use href="#icon-check"/></svg> Equipped' : 'Tap to equip';
+    card.appendChild(status);
+
+    card.addEventListener('click', ()=>{
+      if(!equipped){ save.activeSkin = key; persist(); renderInventory(); renderAvatar(); }
+    });
+
+    grid.appendChild(card);
+
+    const cctx = c.getContext('2d');
+    cctx.save();
+    cctx.translate(35,38);
+    cctx.scale(1.05,1.05);
+    renderSkin(cctx, 24, 0.6, key);
+    cctx.restore();
+  });
+}
+document.getElementById('inventoryBtn').addEventListener('click', ()=>{
+  mainMenu.classList.add('hidden');
+  inventoryMenu.classList.remove('hidden');
+  renderInventory();
+});
+document.getElementById('closeInventoryBtn').addEventListener('click', closeInventory);
+document.getElementById('backFromInventoryBtn').addEventListener('click', closeInventory);
+function closeInventory(){
+  inventoryMenu.classList.add('hidden');
+  mainMenu.classList.remove('hidden');
+  updateQuestMenuUI();
+}
+
+/* ============ SPIN THE WHEEL ============ */
+const WHEEL_SEGMENTS = [
+  { type:'none', label:'Nothing' },
+  { type:'none', label:'Nothing' },
+  { type:'skin', label:'Evil Fish', skinKey:'evilFish' },
+  { type:'none', label:'Nothing' },
+  { type:'food', label:'+20', amount:20 },
+  { type:'food', label:'+10', amount:10 },
+  { type:'none', label:'Nothing' },
+  { type:'none', label:'Nothing' },
+  { type:'food', label:'+5', amount:5 },
+  { type:'food', label:'+100', amount:100 }
+];
+const WHEEL_COLORS = ['#12374d','#16465f','#12374d','#16465f','#1c5a72','#16465f','#12374d','#16465f','#1c5a72','#2a6f7a'];
+
+const wheelMenu = document.getElementById('wheelMenu');
+const wheelCanvas = document.getElementById('wheelCanvas');
+const wheelCtx = wheelCanvas.getContext('2d');
+const spinBtn = document.getElementById('spinBtn');
+let wheelRotation = 0;
+let wheelSpinning = false;
+
+function todayStr(){
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+}
+function hasSpunToday(){ return save.lastSpinDate === todayStr(); }
+
+function drawWheel(){
+  const cx = wheelCanvas.width/2, cy = wheelCanvas.height/2, r = cx - 6;
+  const segAngle = (Math.PI*2)/WHEEL_SEGMENTS.length;
+  wheelCtx.clearRect(0,0,wheelCanvas.width,wheelCanvas.height);
+  for(let i=0;i<WHEEL_SEGMENTS.length;i++){
+    const start = -Math.PI/2 + i*segAngle;
+    const end = start + segAngle;
+    wheelCtx.beginPath();
+    wheelCtx.moveTo(cx,cy);
+    wheelCtx.arc(cx,cy,r,start,end);
+    wheelCtx.closePath();
+    wheelCtx.fillStyle = WHEEL_COLORS[i % WHEEL_COLORS.length];
+    wheelCtx.fill();
+    wheelCtx.strokeStyle = 'rgba(234,244,247,0.15)';
+    wheelCtx.lineWidth = 1;
+    wheelCtx.stroke();
+
+    wheelCtx.save();
+    wheelCtx.translate(cx,cy);
+    wheelCtx.rotate(start+segAngle/2);
+    wheelCtx.textAlign = 'right';
+    wheelCtx.font = '700 12px Segoe UI';
+    const seg = WHEEL_SEGMENTS[i];
+    wheelCtx.fillStyle = seg.type==='none' ? 'rgba(234,244,247,0.4)' : (seg.type==='skin' ? '#e8747a' : '#d9b979');
+    wheelCtx.fillText(seg.label, r-12, 4);
+    wheelCtx.restore();
+  }
+  wheelCtx.beginPath();
+  wheelCtx.arc(cx,cy,15,0,Math.PI*2);
+  wheelCtx.fillStyle = '#12374d';
+  wheelCtx.fill();
+  wheelCtx.strokeStyle = 'rgba(234,244,247,0.3)';
+  wheelCtx.stroke();
+}
+
+function updateWheelUI(){
+  const resultEl = document.getElementById('wheelResult');
+  if(hasSpunToday() && !wheelSpinning){
+    spinBtn.disabled = true;
+    spinBtn.textContent = 'Come back tomorrow';
+    resultEl.textContent = save.lastSpinResult || '';
+  } else if(!wheelSpinning){
+    spinBtn.disabled = false;
+    spinBtn.textContent = 'SPIN';
+    resultEl.textContent = '';
+  }
+}
+
+function spinWheel(){
+  if(wheelSpinning || hasSpunToday()) return;
+  wheelSpinning = true;
+  spinBtn.disabled = true;
+  spinBtn.textContent = 'Spinning...';
+  document.getElementById('wheelResult').textContent = '';
+
+  const index = Math.floor(Math.random()*WHEEL_SEGMENTS.length);
+  const segAngleDeg = 360/WHEEL_SEGMENTS.length;
+  const requiredMod = (((-(index+0.5)*segAngleDeg) % 360) + 360) % 360;
+  const currentMod = ((wheelRotation % 360) + 360) % 360;
+  const delta = ((requiredMod - currentMod) % 360 + 360) % 360;
+  const target = wheelRotation + 5*360 + delta;
+  wheelRotation = target;
+  wheelCanvas.style.transform = `rotate(${target}deg)`;
+
+  setTimeout(()=>{
+    wheelSpinning = false;
+    const seg = WHEEL_SEGMENTS[index];
+    save.lastSpinDate = todayStr();
+    let resultMsg;
+    if(seg.type === 'food'){
+      save.currency += seg.amount;
+      updateCurrencyDisplays();
+      resultMsg = `You won +${seg.amount} Fishy Food!`;
+    } else if(seg.type === 'skin'){
+      if(!save.ownedSkins.includes(seg.skinKey)) save.ownedSkins.push(seg.skinKey);
+      resultMsg = `You won the exclusive ${seg.label} skin!`;
+    } else {
+      resultMsg = 'Nothing this time — try again tomorrow!';
+    }
+    save.lastSpinResult = resultMsg;
+    persist();
+    document.getElementById('wheelResult').textContent = resultMsg;
+    updateWheelUI();
+  }, 4300);
+}
+
+document.getElementById('wheelBtn').addEventListener('click', ()=>{
+  mainMenu.classList.add('hidden');
+  wheelMenu.classList.remove('hidden');
+  drawWheel();
+  updateWheelUI();
+});
+document.getElementById('closeWheelBtn').addEventListener('click', closeWheel);
+document.getElementById('backFromWheelBtn').addEventListener('click', closeWheel);
+function closeWheel(){
+  wheelMenu.classList.add('hidden');
+  mainMenu.classList.remove('hidden');
+  updateQuestMenuUI();
+}
+spinBtn.addEventListener('click', spinWheel);
+
+/* ============ ACHIEVEMENTS MENU WIRING ============ */
+const achievementsMenu = document.getElementById('achievementsMenu');
+document.getElementById('achievementsBtn').addEventListener('click', ()=>{
+  mainMenu.classList.add('hidden');
+  achievementsMenu.classList.remove('hidden');
+  renderAchievements();
+});
+document.getElementById('closeAchievementsBtn').addEventListener('click', closeAchievements);
+document.getElementById('backFromAchievementsBtn').addEventListener('click', closeAchievements);
+function closeAchievements(){
+  achievementsMenu.classList.add('hidden');
+  mainMenu.classList.remove('hidden');
+  updateQuestMenuUI();
+}
+
+/* ============ GAME ENTITIES ============ */
+function sizeToRadius(size){ return 12 + Math.sqrt(size)*3.4; }
+function speedForRadius(r){ return Math.max(1.0, BASE_SPEED * (16/(r*0.55+16)) + 0.65); }
+
+class Fish {
+  constructor(isPlayer, x, y, size, skinKey, name){
+    this.isPlayer = isPlayer;
+    this.x = x; this.y = y;
+    this.size = size;
+    this.r = sizeToRadius(size);
+    this.vx = 0; this.vy = 0;
+    this.dirX = 1; this.dirY = 0;
+    this.skinKey = skinKey || 'classic';
+    this.name = name || 'Fish';
+    this.tailPhase = Math.random()*10;
+    this.alive = true;
+    this.aiState = 'wander';
+    this.wanderAngle = Math.random()*Math.PI*2;
+    this.wanderTimer = 0;
+    this.hueShiftColors = null;
+    this.kills = 0;
+  }
+  updateRadius(){ this.r = sizeToRadius(this.size); }
+}
+
+let player, aiFish = [], foods = [], critters = [];
+let camera = {x:0,y:0};
+let gameRunning = false;
+let elapsedFrames = 0;
+let stats = { eaten:0, kills:0 };
+
+/* ============ BOSS: THE MEGALODON ============ */
+let boss = null; // active boss instance or null
+let totems = [];
+let bossDropPellets = [];
+let runDefeatedMegalodon = false; // did the player help kill the boss THIS session (2+ totems)
+let playerTotemsEatenThisBoss = 0;
+let lastBossBoundary = null; // which 20-min wall-clock boundary we last spawned a boss for
+
+// Wall-clock based, exactly like the hourly quest refresh: tied to real time,
+// not to how long the player has been in a game or sitting at the menu.
+function msUntilNextBoss(){
+  return BOSS_SPAWN_INTERVAL - (Date.now() % BOSS_SPAWN_INTERVAL);
+}
+function currentBossBoundary(){
+  return Math.floor(Date.now() / BOSS_SPAWN_INTERVAL);
+}
+
+function initTotems(){
+  totems = TOTEM_SIZES.map(sz=>({
+    size: sz,
+    r: sizeToRadius(sz),
+    x: Math.random()*WORLD_W*0.7 - WORLD_W*0.35,
+    y: Math.random()*WORLD_H*0.7 - WORLD_H*0.35,
+    alive: true
+  }));
+}
+
+// Picks which boss shows up on each 20-min boundary — a fresh coin flip every
+// time, so it's entirely possible to get the same boss back-to-back.
+function spawnBoss(){
+  if(Math.random() < 0.5) spawnMegalodon();
+  else spawnBessie();
+}
+
+function spawnMegalodon(){
+  const angle = Math.random()*Math.PI*2;
+  boss = {
+    type:'megalodon',
+    x: Math.cos(angle)*WORLD_W*0.3,
+    y: Math.sin(angle)*WORLD_H*0.3,
+    dirX:1, dirY:0,
+    size: MEGALODON_SIZE,
+    r: sizeToRadius(MEGALODON_SIZE)*1.4,
+    maxHealth: 4, // one per totem
+    health: 4,
+    alive: true,
+    tailPhase: 0,
+    state: 'roam', // roam | telegraph | executing
+    attackType: null,
+    attackTimer: 0,
+    attackTarget: null,
+    dashFrom:null, dashTo:null,
+    jawBox:null,
+    toothSpots: [],
+    toothElapsed: 0,
+    cooldown: 900,
+    wanderAngle: Math.random()*Math.PI*2,
+    wanderTimer: 0
+  };
+  playerTotemsEatenThisBoss = 0;
+  initTotems();
+  showToast('The Megalodon has arrived!');
+}
+
+function killMegalodon(){
+  if(!boss) return;
+  const bx = boss.x, by = boss.y;
+  bossDropPellets = [];
+  for(let i=0;i<TOTEM_DROP_COUNT;i++){
+    const a = (i/TOTEM_DROP_COUNT)*Math.PI*2;
+    bossDropPellets.push({
+      x: bx + Math.cos(a)*(30+Math.random()*60),
+      y: by + Math.sin(a)*(30+Math.random()*60),
+      size: TOTEM_DROP_SIZE,
+      r: 9
+    });
+  }
+  if(playerTotemsEatenThisBoss >= 2 && !save.megalodonDefeated){
+    save.megalodonDefeated = true;
+    if(!save.ownedSkins.includes('megalodonBone')) save.ownedSkins.push('megalodonBone');
+    persist();
+    showToast('The Megalodon is defeated! Exclusive skin unlocked!');
+  } else {
+    showToast('The Megalodon has been defeated!');
+  }
+  save.lifetime.bossKills++;
+  persist();
+  checkAchievements();
+  boss = null;
+  totems = [];
+  lastBossBoundary = currentBossBoundary(); // don't immediately re-spawn within the same 20-min window
+}
+
+function eatTotem(t, eater){
+  t.alive = false;
+  totems = totems.filter(x=>x!==t);
+  eater.size += 0; // totems don't feed size directly, they're objectives
+  if(eater === player){
+    playerTotemsEatenThisBoss++;
+    save.lifetime.totemsEaten++;
+    persist();
+    checkAchievements();
+  }
+  showToast(`Totem destroyed! (${TOTEM_SIZES.length - totems.length}/${TOTEM_SIZES.length})`);
+  if(boss){
+    boss.health = Math.max(0, totems.length);
+    if(totems.length === 0){
+      killMegalodon();
+    }
+  }
+}
+
+/* ---------- Bessie ---------- */
+function spawnBessie(){
+  const angle = Math.random()*Math.PI*2;
+  boss = {
+    type:'bessie',
+    x: Math.cos(angle)*WORLD_W*0.3,
+    y: Math.sin(angle)*WORLD_H*0.3,
+    dirX:1, dirY:0,
+    size: BESSIE_SIZE,
+    r: sizeToRadius(BESSIE_SIZE)*1.3,
+    maxHealth: BESSIE_ATTACKS_BEFORE_STUN,
+    health: BESSIE_ATTACKS_BEFORE_STUN,
+    alive: true,
+    tailPhase: 0,
+    state: 'roam', // roam | telegraph | executing | stunned
+    attackType: null,
+    attackTimer: 0,
+    attacksUsed: 0,
+    stunTimer: 0,
+    cooldown: 900,
+    wanderAngle: Math.random()*Math.PI*2,
+    wanderTimer: 0,
+    underground: false,
+    trail: [],
+    trailTimer: 0,
+    waterJetDir: null,
+    waterJetTimer: 0,
+    tsunamiTarget: null,
+    tsunamiBurstAt: null,
+    tsunamiTimer: 0,
+    whirlpools: []
+  };
+  showToast('Bessie has surfaced!');
+}
+
+function killBessie(byPlayer){
+  if(!boss) return;
+  const bx = boss.x, by = boss.y;
+  bossDropPellets = [];
+  for(let i=0;i<TOTEM_DROP_COUNT;i++){
+    const a = (i/TOTEM_DROP_COUNT)*Math.PI*2;
+    bossDropPellets.push({
+      x: bx + Math.cos(a)*(30+Math.random()*60),
+      y: by + Math.sin(a)*(30+Math.random()*60),
+      size: TOTEM_DROP_SIZE,
+      r: 9
+    });
+  }
+  if(byPlayer && !save.bessieDefeated){
+    save.bessieDefeated = true;
+    if(!save.ownedSkins.includes('bessieHide')) save.ownedSkins.push('bessieHide');
+    persist();
+    showToast('Bessie is defeated! Exclusive skin unlocked!');
+  } else {
+    showToast('Bessie has been defeated!');
+  }
+  save.lifetime.bossKills++;
+  persist();
+  checkAchievements();
+  boss = null;
+  lastBossBoundary = currentBossBoundary();
+}
+
+// Finds the point on the map with the most nearby fish, for Bessie's Tsunami
+// Charge to actually run at a crowd instead of a random spot.
+// Nearest living fish to the boss (player or AI) — bosses hunt whoever is
+// closest, not always the player, so AI get chased and eaten too.
+function pickBossTarget(bossObj){
+  const all = [player, ...aiFish].filter(f=>f.alive);
+  if(all.length===0) return player;
+  let best = all[0], bestD = Infinity;
+  for(const f of all){
+    const d = Math.hypot(f.x-bossObj.x, f.y-bossObj.y);
+    if(d < bestD){ bestD = d; best = f; }
+  }
+  return best;
+}
+
+function findCrowdTarget(){
+  const all = [player, ...aiFish].filter(f=>f.alive);
+  if(all.length===0) return {x:player.x,y:player.y};
+  let best = all[0], bestCount = -1;
+  for(const f of all){
+    let count = 0;
+    for(const g of all){
+      if(g!==f && Math.hypot(f.x-g.x,f.y-g.y) < 550) count++;
+    }
+    if(count > bestCount){ bestCount = count; best = f; }
+  }
+  return {x:best.x, y:best.y};
+}
+
+function updateBoss(dtMs){
+  if(!boss) return;
+  if(boss.type === 'megalodon') updateMegalodon(dtMs);
+  else if(boss.type === 'bessie') updateBessie(dtMs);
+}
+
+function updateMegalodon(dtMs){
+  const b = boss;
+  b.tailPhase += 0.15;
+
+  if(b.state === 'roam'){
+    b.cooldown -= dtMs;
+    // simple wander toward map center-ish with drift
+    b.wanderTimer -= dtMs;
+    if(b.wanderTimer <= 0){
+      b.wanderAngle += (Math.random()-0.5)*1.2;
+      b.wanderTimer = 1500 + Math.random()*1500;
+    }
+    let tx = b.x + Math.cos(b.wanderAngle)*300;
+    let ty = b.y + Math.sin(b.wanderAngle)*300;
+    // bias toward the nearest fish (player or AI) for tension — the megalodon hunts whoever is closest
+    const roamTarget = pickBossTarget(b);
+    tx = tx*0.4 + roamTarget.x*0.6;
+    ty = ty*0.4 + roamTarget.y*0.6;
+    let dx = tx-b.x, dy = ty-b.y;
+    const dist = Math.hypot(dx,dy)||1;
+    dx/=dist; dy/=dist;
+    b.dirX += (dx-b.dirX)*0.05; b.dirY += (dy-b.dirY)*0.05;
+    const nm = Math.hypot(b.dirX,b.dirY)||1; b.dirX/=nm; b.dirY/=nm;
+    b.x += b.dirX*MEGALODON_SPEED;
+    b.y += b.dirY*MEGALODON_SPEED;
+    b.x = Math.max(-WORLD_W/2, Math.min(WORLD_W/2, b.x));
+    b.y = Math.max(-WORLD_H/2, Math.min(WORLD_H/2, b.y));
+
+    if(b.cooldown <= 0){
+      startBossAttack();
+    }
+  } else if(b.state === 'telegraph'){
+    b.attackTimer -= dtMs;
+    if(b.attackType === 'jaw'){
+      // keep chasing target during telegraph, jaw box follows in front of boss
+      const target = b.attackTarget;
+      if(target && target.alive){
+        let dx = target.x-b.x, dy = target.y-b.y;
+        const dist = Math.hypot(dx,dy)||1;
+        dx/=dist; dy/=dist;
+        b.dirX += (dx-b.dirX)*0.08; b.dirY += (dy-b.dirY)*0.08;
+        const nm = Math.hypot(b.dirX,b.dirY)||1; b.dirX/=nm; b.dirY/=nm;
+        b.x += b.dirX*MEGALODON_SPEED*0.9;
+        b.y += b.dirY*MEGALODON_SPEED*0.9;
+      }
+      updateJawBox();
+    }
+    if(b.attackTimer <= 0){
+      executeBossAttack();
+    }
+  } else if(b.state === 'executing'){
+    if(b.attackType === 'dash'){
+      const dx = b.dashTo.x-b.dashFrom.x, dy = b.dashTo.y-b.dashFrom.y;
+      const totalDist = Math.hypot(dx,dy)||1;
+      b.dashProgress = (b.dashProgress||0) + (MEGALODON_SPEED*DASH_SPEED_MULT*2.2*dtMs/1000);
+      const t = Math.min(1, b.dashProgress/totalDist);
+      b.x = b.dashFrom.x + dx*t;
+      b.y = b.dashFrom.y + dy*t;
+      b.dirX = dx/totalDist; b.dirY = dy/totalDist;
+      checkDashKill();
+      if(t >= 1){
+        endBossAttack();
+      }
+    } else if(b.attackType === 'jaw'){
+      updateJawBox();
+      checkJawKill();
+      b.jawExecuteTimer = (b.jawExecuteTimer||0) - dtMs;
+      if(b.jawExecuteTimer <= 0){
+        endBossAttack();
+      }
+    } else if(b.attackType === 'tooth'){
+      b.toothElapsed += dtMs;
+      b.toothSpawnTimer = (b.toothSpawnTimer||0) - dtMs;
+      if(b.toothSpawnTimer <= 0 && b.toothElapsed < TOOTHDROP_DURATION_MS){
+        spawnToothSpot();
+        b.toothSpawnTimer = TOOTHDROP_INTERVAL_MS;
+      }
+      updateToothSpots(dtMs);
+      // the megalodon doesn't just stand still while the teeth rain down — it keeps hunting
+      const hunted = pickBossTarget(b);
+      let dx = hunted.x-b.x, dy = hunted.y-b.y;
+      const dist = Math.hypot(dx,dy)||1;
+      dx/=dist; dy/=dist;
+      b.dirX += (dx-b.dirX)*0.05; b.dirY += (dy-b.dirY)*0.05;
+      const nm = Math.hypot(b.dirX,b.dirY)||1; b.dirX/=nm; b.dirY/=nm;
+      b.x += b.dirX*MEGALODON_SPEED;
+      b.y += b.dirY*MEGALODON_SPEED;
+      b.x = Math.max(-WORLD_W/2, Math.min(WORLD_W/2, b.x));
+      b.y = Math.max(-WORLD_H/2, Math.min(WORLD_H/2, b.y));
+      if(b.toothElapsed >= TOOTHDROP_DURATION_MS && b.toothSpots.length===0){
+        endBossAttack();
+      }
+    }
+  }
+}
+
+/* ---------- Bessie's attack state machine ---------- */
+function updateBessie(dtMs){
+  const b = boss;
+  b.tailPhase += 0.15;
+
+  if(b.state === 'roam'){
+    b.cooldown -= dtMs;
+    b.wanderTimer -= dtMs;
+    if(b.wanderTimer <= 0){
+      b.wanderAngle += (Math.random()-0.5)*1.2;
+      b.wanderTimer = 1200 + Math.random()*1200;
+    }
+    let tx = b.x + Math.cos(b.wanderAngle)*300;
+    let ty = b.y + Math.sin(b.wanderAngle)*300;
+    const roamTarget = pickBossTarget(b);
+    tx = tx*0.4 + roamTarget.x*0.6;
+    ty = ty*0.4 + roamTarget.y*0.6;
+    let dx = tx-b.x, dy = ty-b.y;
+    const dist = Math.hypot(dx,dy)||1;
+    dx/=dist; dy/=dist;
+    b.dirX += (dx-b.dirX)*0.05; b.dirY += (dy-b.dirY)*0.05;
+    const nm = Math.hypot(b.dirX,b.dirY)||1; b.dirX/=nm; b.dirY/=nm;
+    b.x += b.dirX*BESSIE_SPEED;
+    b.y += b.dirY*BESSIE_SPEED;
+    b.x = Math.max(-WORLD_W/2, Math.min(WORLD_W/2, b.x));
+    b.y = Math.max(-WORLD_H/2, Math.min(WORLD_H/2, b.y));
+    if(b.cooldown <= 0) startBossAttack();
+
+  } else if(b.state === 'telegraph'){
+    b.attackTimer -= dtMs;
+    if(b.attackType === 'tsunami'){
+      // running underground toward the crowd — this doubles as the telegraph
+      let dx = b.tsunamiTarget.x-b.x, dy = b.tsunamiTarget.y-b.y;
+      const dist = Math.hypot(dx,dy)||1;
+      dx/=dist; dy/=dist;
+      b.dirX += (dx-b.dirX)*0.12; b.dirY += (dy-b.dirY)*0.12;
+      const nm = Math.hypot(b.dirX,b.dirY)||1; b.dirX/=nm; b.dirY/=nm;
+      b.x += b.dirX*BESSIE_RUN_SPEED;
+      b.y += b.dirY*BESSIE_RUN_SPEED;
+      b.x = Math.max(-WORLD_W/2, Math.min(WORLD_W/2, b.x));
+      b.y = Math.max(-WORLD_H/2, Math.min(WORLD_H/2, b.y));
+      b.trailTimer -= dtMs;
+      if(b.trailTimer <= 0){
+        b.trail.push({x:b.x, y:b.y});
+        if(b.trail.length > 20) b.trail.shift();
+        b.trailTimer = 70;
+      }
+    }
+    if(b.attackTimer <= 0){
+      executeBossAttack();
+    }
+  } else if(b.state === 'executing'){
+    if(b.attackType === 'waterjet'){
+      b.waterJetTimer -= dtMs;
+      checkWaterJetKill();
+      if(b.waterJetTimer <= 0){
+        endBossAttack();
+      }
+    } else if(b.attackType === 'tsunami'){
+      b.tsunamiTimer -= dtMs;
+      const elapsed = TSUNAMI_BURST_MS - b.tsunamiTimer;
+      checkTsunamiKill(elapsed);
+      if(b.tsunamiTimer <= 0){
+        endBossAttack();
+      }
+    } else if(b.attackType === 'whirlpool'){
+      updateWhirlpools(dtMs);
+      b.whirlpoolTimer -= dtMs;
+      if(b.whirlpoolTimer <= 0){
+        b.whirlpools = [];
+        endBossAttack();
+      }
+    }
+  } else if(b.state === 'stunned'){
+    b.stunTimer -= dtMs;
+    // drifts gently while stunned, still fully vulnerable
+    b.x += b.dirX*0.4;
+    b.y += b.dirY*0.4;
+    if(b.stunTimer <= 0){
+      b.attacksUsed = 0;
+      b.health = b.maxHealth;
+      b.state = 'roam';
+      b.cooldown = 900;
+    }
+  }
+}
+
+function startBossAttack(){
+  const b = boss;
+  if(b.type === 'megalodon'){ startMegalodonAttack(); return; }
+  if(b.type === 'bessie'){ startBessieAttack(); return; }
+}
+
+function startMegalodonAttack(){
+  const b = boss;
+  const choices = ['dash','jaw','tooth'];
+  b.attackType = choices[Math.floor(Math.random()*choices.length)];
+  b.state = 'telegraph';
+  b.attackTimer = ATTACK_TELEGRAPH_MS;
+
+  if(b.attackType === 'dash'){
+    // pick dash direction toward whoever's nearest, with some spread
+    const hunted = pickBossTarget(b);
+    let dx = hunted.x-b.x, dy = hunted.y-b.y;
+    const dist = Math.hypot(dx,dy)||1;
+    dx/=dist; dy/=dist;
+    const angleJitter = (Math.random()-0.5)*0.5;
+    const cosA = Math.cos(angleJitter), sinA = Math.sin(angleJitter);
+    const rdx = dx*cosA - dy*sinA, rdy = dx*sinA + dy*cosA;
+    const dashLen = 1400;
+    b.dashFrom = {x:b.x, y:b.y};
+    b.dashTo = {x:b.x+rdx*dashLen, y:b.y+rdy*dashLen};
+    b.dashProgress = 0;
+  } else if(b.attackType === 'jaw'){
+    b.attackTarget = pickBossTarget(b);
+    b.jawExecuteTimer = 700;
+    updateJawBox();
+  } else if(b.attackType === 'tooth'){
+    b.toothSpots = [];
+    b.toothElapsed = 0;
+    b.toothSpawnTimer = 0;
+  }
+}
+
+function startBessieAttack(){
+  const b = boss;
+  const choices = ['waterjet','tsunami','whirlpool'];
+  b.attackType = choices[Math.floor(Math.random()*choices.length)];
+  b.state = 'telegraph';
+  b.attackTimer = ATTACK_TELEGRAPH_MS;
+
+  if(b.attackType === 'waterjet'){
+    const hunted = pickBossTarget(b);
+    let dx = hunted.x-b.x, dy = hunted.y-b.y;
+    const dist = Math.hypot(dx,dy)||1;
+    b.waterJetDir = {x:dx/dist, y:dy/dist};
+  } else if(b.attackType === 'tsunami'){
+    b.underground = true;
+    b.tsunamiTarget = findCrowdTarget();
+    b.trail = [{x:b.x,y:b.y}];
+    b.trailTimer = 0;
+  } else if(b.attackType === 'whirlpool'){
+    b.whirlpools = [];
+    const crowdSpot = findCrowdTarget();
+    for(let i=0;i<WHIRLPOOL_COUNT;i++){
+      const wx = crowdSpot.x + (Math.random()-0.5)*2000;
+      const wy = crowdSpot.y + (Math.random()-0.5)*2000;
+      b.whirlpools.push({ x:wx, y:wy, r:WHIRLPOOL_RADIUS, active:false });
+    }
+  }
+}
+
+function updateJawBox(){
+  const b = boss;
+  const facingAngle = Math.atan2(b.dirY, b.dirX);
+  const cx = b.x + Math.cos(facingAngle)*(b.r*0.6 + JAW_BOX_LEN/2);
+  const cy = b.y + Math.sin(facingAngle)*(b.r*0.6 + JAW_BOX_LEN/2);
+  b.jawBox = { cx, cy, angle: facingAngle, w: JAW_BOX_LEN, h: JAW_BOX_WIDE };
+}
+
+function executeBossAttack(){
+  const b = boss;
+  b.state = 'executing';
+  if(b.type === 'megalodon' && b.attackType === 'jaw'){
+    b.jawExecuteTimer = 700;
+  } else if(b.type === 'bessie'){
+    if(b.attackType === 'waterjet'){
+      b.waterJetTimer = WATERJET_DURATION_MS;
+    } else if(b.attackType === 'tsunami'){
+      b.underground = false;
+      b.tsunamiBurstAt = {x:b.x, y:b.y};
+      b.tsunamiTimer = TSUNAMI_BURST_MS;
+    } else if(b.attackType === 'whirlpool'){
+      for(const w of b.whirlpools) w.active = true;
+      b.whirlpoolTimer = WHIRLPOOL_DURATION_MS;
+    }
+  }
+}
+
+function endBossAttack(){
+  const b = boss;
+  b.dashFrom = null; b.dashTo = null;
+  b.jawBox = null;
+  b.toothSpots = [];
+  b.trail = [];
+
+  if(b.type === 'megalodon'){
+    b.state = 'roam';
+    b.attackType = null;
+    b.cooldown = 700 + Math.random()*700;
+    return;
+  }
+
+  // Bessie: track attacks used toward her stun threshold — she attacks a lot,
+  // then goes vulnerable for a few seconds before resuming the assault.
+  b.attackType = null;
+  b.attacksUsed++;
+  b.health = Math.max(0, b.maxHealth - b.attacksUsed);
+  if(b.attacksUsed >= BESSIE_ATTACKS_BEFORE_STUN){
+    b.state = 'stunned';
+    b.stunTimer = BESSIE_STUN_MS;
+    showToast('Bessie is stunned — eat her now!');
+  } else {
+    b.state = 'roam';
+    b.cooldown = 500 + Math.random()*500;
+  }
+}
+
+function pointInRotatedBox(px,py, box){
+  const dx = px-box.cx, dy = py-box.cy;
+  const cosA = Math.cos(-box.angle), sinA = Math.sin(-box.angle);
+  const lx = dx*cosA - dy*sinA, ly = dx*sinA + dy*cosA;
+  return Math.abs(lx) <= box.w/2 && Math.abs(ly) <= box.h/2;
+}
+
+function distToSegment(px,py, ax,ay, bx,by){
+  const dx = bx-ax, dy = by-ay;
+  const lenSq = dx*dx+dy*dy || 1;
+  let t = ((px-ax)*dx + (py-ay)*dy)/lenSq;
+  t = Math.max(0, Math.min(1, t));
+  const cx = ax+dx*t, cy = ay+dy*t;
+  return Math.hypot(px-cx, py-cy);
+}
+
+function checkDashKill(){
+  const b = boss;
+  if(!b.dashFrom || !b.dashTo) return;
+  const allTargets = [player, ...aiFish].filter(f=>f.alive);
+  for(const f of allTargets){
+    const d = distToSegment(f.x, f.y, b.dashFrom.x, b.dashFrom.y, b.x, b.y);
+    if(d < DASH_ATTACK_WIDTH/2 + f.r*0.5){
+      killFishByBoss(f);
+    }
+  }
+}
+
+function checkJawKill(){
+  const b = boss;
+  if(!b.jawBox) return;
+  const allTargets = [player, ...aiFish].filter(f=>f.alive);
+  for(const f of allTargets){
+    if(pointInRotatedBox(f.x, f.y, b.jawBox)){
+      killFishByBoss(f);
+    }
+  }
+}
+
+function spawnToothSpot(){
+  const b = boss;
+  const hunted = pickBossTarget(b);
+  const x = hunted.x + (Math.random()-0.5)*1600;
+  const y = hunted.y + (Math.random()-0.5)*1600;
+  b.toothSpots.push({ x, y, timer: ATTACK_TELEGRAPH_MS, fallen:false, falling:false });
+}
+
+function updateToothSpots(dtMs){
+  const b = boss;
+  for(const spot of b.toothSpots){
+    if(spot.falling) continue;
+    spot.timer -= dtMs;
+    if(spot.timer <= 0){
+      spot.falling = true;
+      // check kill on impact
+      const allTargets = [player, ...aiFish].filter(f=>f.alive);
+      for(const f of allTargets){
+        const d = Math.hypot(f.x-spot.x, f.y-spot.y);
+        if(d < TOOTHDROP_RADIUS + f.r*0.5){
+          killFishByBoss(f);
+        }
+      }
+    }
+  }
+  b.toothSpots = b.toothSpots.filter(s=>!s.falling || (s.fallenTimer = (s.fallenTimer||400) - dtMs) > -400);
+}
+
+function killFishByBoss(f){
+  if(!f.alive) return;
+  f.alive = false;
+  if(f.isPlayer){
+    endGame();
+  }
+}
+
+/* ---------- Bessie attack hit-detection ---------- */
+function checkWaterJetKill(){
+  const b = boss;
+  if(!b.waterJetDir) return;
+  const ex = b.x + b.waterJetDir.x*WATERJET_RANGE, ey = b.y + b.waterJetDir.y*WATERJET_RANGE;
+  const allTargets = [player, ...aiFish].filter(f=>f.alive);
+  for(const f of allTargets){
+    const d = distToSegment(f.x, f.y, b.x, b.y, ex, ey);
+    if(d < WATERJET_WIDTH/2 + f.r*0.5){
+      killFishByBoss(f);
+    }
+  }
+}
+
+function checkTsunamiKill(elapsedMs){
+  const b = boss;
+  if(!b.tsunamiBurstAt) return;
+  const ringR = (elapsedMs/TSUNAMI_BURST_MS)*TSUNAMI_RADIUS;
+  const allTargets = [player, ...aiFish].filter(f=>f.alive);
+  for(const f of allTargets){
+    const d = Math.hypot(f.x-b.tsunamiBurstAt.x, f.y-b.tsunamiBurstAt.y);
+    if(Math.abs(d-ringR) < TSUNAMI_BAND){
+      killFishByBoss(f);
+    }
+  }
+}
+
+function updateWhirlpools(dtMs){
+  const b = boss;
+  const allTargets = [player, ...aiFish].filter(f=>f.alive);
+  for(const w of b.whirlpools){
+    if(!w.active) continue;
+    for(const f of allTargets){
+      const dx = w.x-f.x, dy = w.y-f.y;
+      const d = Math.hypot(dx,dy)||1;
+      if(d < w.r*1.6){
+        // pull toward the center
+        const pullStrength = Math.min(1, (w.r*1.6-d)/(w.r*1.6)) * 1.6;
+        f.x += (dx/d)*pullStrength;
+        f.y += (dy/d)*pullStrength;
+        if(d < w.r){
+          f.size = Math.max(1, f.size - WHIRLPOOL_DRAIN_PER_SEC*(dtMs/1000));
+          f.updateRadius();
+        }
+      }
+    }
+  }
+}
+
+function drawBoss(){
+  if(!boss) return;
+  if(boss.type === 'megalodon') drawMegalodon();
+  else if(boss.type === 'bessie') drawBessie();
+}
+
+function drawMegalodon(){
+  const b = boss;
+  const p = worldToScreen(b.x, b.y);
+
+  // telegraphs drawn in world space
+  if(b.state === 'telegraph' || (b.state==='executing' && b.attackType==='tooth')){
+    if(b.attackType === 'dash' && b.dashTo){
+      const p1 = worldToScreen(b.x, b.y);
+      const p2 = worldToScreen(b.dashTo.x, b.dashTo.y);
+      ctx.save();
+      ctx.strokeStyle = 'rgba(217,60,46,0.85)';
+      ctx.lineWidth = DASH_ATTACK_WIDTH;
+      ctx.lineCap = 'round';
+      ctx.globalAlpha = 0.35 + 0.15*Math.sin(performance.now()/120);
+      ctx.beginPath();
+      ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y);
+      ctx.stroke();
+      ctx.restore();
+    }
+    if(b.attackType === 'jaw' && b.jawBox){
+      drawJawBoxTelegraph(b.jawBox);
+    }
+  }
+  if(b.attackType === 'tooth' && b.toothSpots){
+    for(const spot of b.toothSpots) drawToothSpot(spot);
+  }
+  if(b.state === 'executing' && b.attackType === 'jaw' && b.jawBox){
+    drawJawBoxTelegraph(b.jawBox, true);
+  }
+
+  // boss body
+  if(p.x < -b.r*3 || p.x > canvas.width+b.r*3 || p.y < -b.r*3 || p.y > canvas.height+b.r*3) return;
+  ctx.save();
+  ctx.translate(p.x,p.y);
+  const angle = Math.atan2(b.dirY, b.dirX);
+  ctx.rotate(angle);
+  drawMegalodonBody(ctx, b.r, b.tailPhase);
+  ctx.restore();
+
+  ctx.save();
+  ctx.font = '700 14px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillText('The Megalodon', p.x+1, p.y - b.r - 13);
+  ctx.fillStyle = '#ffb3a0';
+  ctx.fillText('The Megalodon', p.x, p.y - b.r - 14);
+  ctx.restore();
+}
+
+function drawMegalodonBody(c, r, tailPhase){
+  c.save();
+  const tailWag = Math.sin(tailPhase)*0.5;
+  c.translate(-r*0.92,0);
+  c.rotate(tailWag*0.4);
+  c.fillStyle = '#3d4a52';
+  c.beginPath();
+  c.moveTo(0,0);
+  c.lineTo(-r*0.7,-r*0.5);
+  c.lineTo(-r*0.7,r*0.5);
+  c.closePath();
+  c.fill();
+  c.restore();
+
+  c.fillStyle = '#4a5a63';
+  c.beginPath();
+  c.ellipse(0,0,r*1.05,r*0.62,0,0,Math.PI*2);
+  c.fill();
+  c.fillStyle = '#c9d4d9';
+  c.beginPath();
+  c.ellipse(r*0.1,r*0.28,r*0.85,r*0.28,0,0,Math.PI*2);
+  c.fill();
+  c.strokeStyle = 'rgba(12,34,51,0.35)';
+  c.lineWidth = Math.max(1,r*0.045);
+  c.beginPath();
+  c.ellipse(0,0,r*1.05,r*0.62,0,0,Math.PI*2);
+  c.stroke();
+
+  // dorsal fin
+  c.fillStyle = '#3d4a52';
+  c.beginPath();
+  c.moveTo(-r*0.1,-r*0.55);
+  c.lineTo(r*0.15,-r*1.15);
+  c.lineTo(r*0.4,-r*0.5);
+  c.closePath();
+  c.fill();
+
+  // teeth row
+  c.fillStyle = '#f0f0f0';
+  for(let i=0;i<5;i++){
+    c.beginPath();
+    c.moveTo(r*0.75+i*r*0.06, r*0.15);
+    c.lineTo(r*0.79+i*r*0.06, r*0.3);
+    c.lineTo(r*0.71+i*r*0.06, r*0.3);
+    c.closePath();
+    c.fill();
+  }
+
+  // eye
+  c.fillStyle = '#0c2233';
+  c.beginPath();
+  c.arc(r*0.6,-r*0.14,r*0.1,0,Math.PI*2);
+  c.fill();
+}
+
+/* ============ BESSIE: DRAW ============ */
+function drawBessie(){
+  const b = boss;
+  const p = worldToScreen(b.x, b.y);
+
+  // telegraphs / active-attack visuals (world space)
+  if(b.attackType === 'waterjet' && b.waterJetDir){
+    const ex = b.x + b.waterJetDir.x*WATERJET_RANGE, ey = b.y + b.waterJetDir.y*WATERJET_RANGE;
+    const p1 = worldToScreen(b.x, b.y);
+    const p2 = worldToScreen(ex, ey);
+    ctx.save();
+    if(b.state === 'telegraph'){
+      ctx.strokeStyle = 'rgba(217,60,46,0.85)';
+      ctx.lineWidth = WATERJET_WIDTH;
+      ctx.lineCap = 'round';
+      ctx.globalAlpha = 0.35 + 0.15*Math.sin(performance.now()/120);
+    } else {
+      ctx.strokeStyle = 'rgba(90,200,230,0.75)';
+      ctx.lineWidth = WATERJET_WIDTH;
+      ctx.lineCap = 'round';
+      ctx.globalAlpha = 0.55 + 0.2*Math.sin(performance.now()/60);
+    }
+    ctx.beginPath();
+    ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if(b.attackType === 'tsunami' && b.underground){
+    // light-blue trail is the only sign of Bessie while she's running underground
+    ctx.save();
+    ctx.strokeStyle = 'rgba(120,210,235,0.7)';
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
+    ctx.setLineDash([4,10]);
+    ctx.beginPath();
+    for(let i=0;i<b.trail.length;i++){
+      const tp = worldToScreen(b.trail[i].x, b.trail[i].y);
+      if(i===0) ctx.moveTo(tp.x,tp.y); else ctx.lineTo(tp.x,tp.y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+    // a small bubble ripple at her current (hidden) position
+    ctx.save();
+    ctx.globalAlpha = 0.5 + 0.3*Math.sin(performance.now()/100);
+    ctx.strokeStyle = 'rgba(120,210,235,0.8)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y, 20+6*Math.sin(performance.now()/150), 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+  }
+  if(b.attackType === 'tsunami' && !b.underground && b.state==='executing' && b.tsunamiBurstAt){
+    const elapsed = TSUNAMI_BURST_MS - b.tsunamiTimer;
+    const ringR = (elapsed/TSUNAMI_BURST_MS)*TSUNAMI_RADIUS;
+    const cp = worldToScreen(b.tsunamiBurstAt.x, b.tsunamiBurstAt.y);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(90,200,230,0.8)';
+    ctx.lineWidth = TSUNAMI_BAND*0.7;
+    ctx.globalAlpha = 0.55;
+    ctx.beginPath();
+    ctx.arc(cp.x, cp.y, ringR, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if(b.attackType === 'whirlpool'){
+    for(const w of b.whirlpools) drawWhirlpool(w, b.state);
+  }
+
+  // boss body — hidden entirely while underground
+  if(b.underground) return;
+  if(p.x < -b.r*3 || p.x > canvas.width+b.r*3 || p.y < -b.r*3 || p.y > canvas.height+b.r*3) return;
+
+  if(b.state === 'stunned'){
+    ctx.save();
+    ctx.globalAlpha = 0.7 + 0.3*Math.sin(performance.now()/150);
+    ctx.strokeStyle = '#e8d347';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, b.r*1.25, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.translate(p.x,p.y);
+  const angle = Math.atan2(b.dirY, b.dirX);
+  ctx.rotate(angle);
+  drawBessieBody(ctx, b.r, b.tailPhase, b.state==='stunned');
+  ctx.restore();
+
+  ctx.save();
+  ctx.font = '700 14px Segoe UI';
+  ctx.textAlign = 'center';
+  const label = b.state==='stunned' ? 'Bessie — STUNNED, EAT HER!' : 'Bessie';
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillText(label, p.x+1, p.y - b.r - 13);
+  ctx.fillStyle = b.state==='stunned' ? '#e8d347' : '#9dd8e8';
+  ctx.fillText(label, p.x, p.y - b.r - 14);
+  ctx.restore();
+}
+
+function drawWhirlpool(w, bossState){
+  const p = worldToScreen(w.x, w.y);
+  if(p.x < -w.r*2 || p.x > canvas.width+w.r*2 || p.y < -w.r*2 || p.y > canvas.height+w.r*2) return;
+  if(!w.active){
+    // telegraph: pulsing red warning circle
+    ctx.save();
+    ctx.fillStyle = 'rgba(217,60,46,0.5)';
+    ctx.globalAlpha = 0.5 + 0.35*Math.sin(performance.now()/100);
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,w.r,0,Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(217,60,46,0.9)';
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,w.r,0,Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+  ctx.save();
+  ctx.translate(p.x,p.y);
+  const t = performance.now()/300;
+  ctx.strokeStyle = 'rgba(90,200,230,0.75)';
+  ctx.lineWidth = 3;
+  for(let i=0;i<3;i++){
+    ctx.save();
+    ctx.rotate(t + i*(Math.PI*2/3));
+    ctx.globalAlpha = 0.6 - i*0.12;
+    ctx.beginPath();
+    ctx.arc(0,0, w.r*(0.4+i*0.22), 0.3, Math.PI*1.6);
+    ctx.stroke();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function drawBessieBody(c, r, tailPhase, stunned){
+  // long serpentine tail
+  c.save();
+  const tailWag = Math.sin(tailPhase)*0.5;
+  c.translate(-r*0.95,0);
+  c.rotate(tailWag*0.35);
+  c.fillStyle = stunned ? '#5c7d8a' : '#3d6b7d';
+  c.beginPath();
+  c.moveTo(0,-r*0.18);
+  c.quadraticCurveTo(-r*0.5,-r*0.42, -r*0.85,-r*0.12);
+  c.quadraticCurveTo(-r*0.55,0,-r*0.85,r*0.12);
+  c.quadraticCurveTo(-r*0.5,r*0.42, 0,r*0.18);
+  c.closePath();
+  c.fill();
+  c.restore();
+
+  // main body
+  c.fillStyle = stunned ? '#5c7d8a' : '#3d6b7d';
+  c.beginPath();
+  c.ellipse(0,0,r*1.0,r*0.6,0,0,Math.PI*2);
+  c.fill();
+
+  // underbelly
+  c.fillStyle = stunned ? '#a8c4cc' : '#8fb4c0';
+  c.beginPath();
+  c.ellipse(r*0.05,r*0.26,r*0.8,r*0.24,0,0,Math.PI*2);
+  c.fill();
+
+  // humps along the back
+  c.fillStyle = stunned ? '#5c7d8a' : '#3d6b7d';
+  for(let i=-1;i<=1;i++){
+    c.beginPath();
+    c.arc(i*r*0.35,-r*0.5,r*0.2,Math.PI,0);
+    c.fill();
+  }
+
+  c.strokeStyle = 'rgba(12,34,51,0.3)';
+  c.lineWidth = Math.max(1,r*0.04);
+  c.beginPath();
+  c.ellipse(0,0,r*1.0,r*0.6,0,0,Math.PI*2);
+  c.stroke();
+
+  // neck + small head reaching forward
+  c.fillStyle = stunned ? '#5c7d8a' : '#3d6b7d';
+  c.beginPath();
+  c.moveTo(r*0.8,-r*0.18);
+  c.quadraticCurveTo(r*1.25,-r*0.3, r*1.5,-r*0.05);
+  c.quadraticCurveTo(r*1.6,0.02,r*1.5,r*0.1);
+  c.quadraticCurveTo(r*1.2,r*0.05, r*0.8,r*0.16);
+  c.closePath();
+  c.fill();
+
+  // eye
+  c.fillStyle = stunned ? '#0c2233' : '#0c2233';
+  c.beginPath();
+  c.arc(r*1.42,-r*0.08,r*0.06,0,Math.PI*2);
+  c.fill();
+
+  if(stunned){
+    // dizzy sparkle stars above head
+    c.save();
+    c.fillStyle = '#e8d347';
+    for(let i=0;i<3;i++){
+      const a = tailPhase*2 + i*(Math.PI*2/3);
+      const sx = r*1.3 + Math.cos(a)*r*0.35;
+      const sy = -r*0.55 + Math.sin(a)*r*0.18;
+      c.beginPath();
+      c.arc(sx,sy,r*0.06,0,Math.PI*2);
+      c.fill();
+    }
+    c.restore();
+  }
+}
+
+function drawJawBoxTelegraph(box, executing){
+  const c1 = worldToScreen(box.cx - Math.cos(box.angle)*box.w/2 - Math.sin(box.angle)*box.h/2*-1, box.cy);
+  ctx.save();
+  const screenCenter = worldToScreen(box.cx, box.cy);
+  ctx.translate(screenCenter.x, screenCenter.y);
+  ctx.rotate(box.angle);
+  ctx.fillStyle = executing ? 'rgba(217,60,46,0.55)' : 'rgba(217,60,46,0.3)';
+  ctx.strokeStyle = 'rgba(217,60,46,0.9)';
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = executing ? 1 : (0.5 + 0.3*Math.sin(performance.now()/120));
+  ctx.fillRect(-box.w/2,-box.h/2, box.w, box.h);
+  ctx.strokeRect(-box.w/2,-box.h/2, box.w, box.h);
+  ctx.restore();
+}
+
+function drawToothSpot(spot){
+  const p = worldToScreen(spot.x, spot.y);
+  if(spot.falling){
+    ctx.save();
+    ctx.translate(p.x,p.y);
+    ctx.fillStyle = '#f0f0f0';
+    ctx.beginPath();
+    ctx.moveTo(0,-TOOTHDROP_RADIUS*0.5);
+    ctx.lineTo(TOOTHDROP_RADIUS*0.4,TOOTHDROP_RADIUS*0.5);
+    ctx.lineTo(-TOOTHDROP_RADIUS*0.4,TOOTHDROP_RADIUS*0.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(217,60,46,0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0,0,TOOTHDROP_RADIUS,0,Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+  ctx.save();
+  ctx.fillStyle = 'rgba(217,60,46,0.55)';
+  ctx.globalAlpha = 0.5 + 0.35*Math.sin(performance.now()/100);
+  ctx.beginPath();
+  ctx.arc(p.x,p.y,TOOTHDROP_RADIUS,0,Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(217,60,46,0.9)';
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = 1;
+  ctx.beginPath();
+  ctx.arc(p.x,p.y,TOOTHDROP_RADIUS,0,Math.PI*2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawTotems(){
+  for(const t of totems){
+    if(!t.alive) continue;
+    const p = worldToScreen(t.x, t.y);
+    if(p.x < -t.r*2 || p.x > canvas.width+t.r*2 || p.y < -t.r*2 || p.y > canvas.height+t.r*2) continue;
+    ctx.save();
+    ctx.translate(p.x,p.y);
+    ctx.fillStyle = '#8a6f52';
+    ctx.strokeStyle = 'rgba(12,34,51,0.3)';
+    ctx.lineWidth = 2;
+    const segs = 4, segH = t.r*1.7/segs;
+    for(let i=0;i<segs;i++){
+      ctx.fillStyle = i%2===0 ? '#8a6f52' : '#a68a5f';
+      ctx.fillRect(-t.r*0.42, t.r*0.85 - (i+1)*segH, t.r*0.84, segH);
+      ctx.strokeRect(-t.r*0.42, t.r*0.85 - (i+1)*segH, t.r*0.84, segH);
+    }
+    ctx.fillStyle = '#d9b979';
+    ctx.beginPath();
+    ctx.arc(0, -t.r*0.95, t.r*0.32, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(12,34,51,0.35)';
+    ctx.stroke();
+    ctx.fillStyle = '#0c2233';
+    ctx.beginPath(); ctx.arc(-t.r*0.12,-t.r*0.98,t.r*0.06,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(t.r*0.12,-t.r*0.98,t.r*0.06,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.font = '600 12px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillText(`Totem · ${t.size}`, p.x+1, p.y - t.r*1.4 - 5);
+    ctx.fillStyle = '#d9b979';
+    ctx.fillText(`Totem · ${t.size}`, p.x, p.y - t.r*1.4 - 6);
+    ctx.restore();
+  }
+}
+
+function drawBossDrops(){
+  for(const d of bossDropPellets){
+    const p = worldToScreen(d.x, d.y);
+    if(p.x < -20 || p.x > canvas.width+20 || p.y < -20 || p.y > canvas.height+20) continue;
+    ctx.save();
+    ctx.fillStyle = '#d9503f';
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,d.r,0,Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function spawnFood(){
+  return {
+    x: Math.random()*WORLD_W - WORLD_W/2,
+    y: Math.random()*WORLD_H - WORLD_H/2,
+    r: 4 + Math.random()*3,
+    hue: Math.floor(Math.random()*360)
+  };
+}
+function initFoods(){
+  foods = [];
+  for(let i=0;i<NUM_FOOD;i++) foods.push(spawnFood());
+}
+
+/* ============ CRITTERS (rare, +3 size) ============ */
+const CRITTER_TYPES = ['crab','seaweed','snail'];
+const NUM_CRITTERS = 14;
+const CRITTER_SIZE_BONUS = 5;
+function spawnCritter(){
+  return {
+    type: CRITTER_TYPES[Math.floor(Math.random()*CRITTER_TYPES.length)],
+    x: Math.random()*WORLD_W - WORLD_W/2,
+    y: Math.random()*WORLD_H - WORLD_H/2,
+    r: 11 + Math.random()*3,
+    bob: Math.random()*Math.PI*2,
+    facing: Math.random() < 0.5 ? -1 : 1
+  };
+}
+function initCritters(){
+  critters = [];
+  for(let i=0;i<NUM_CRITTERS;i++) critters.push(spawnCritter());
+}
+function drawCritter(cr){
+  const p = worldToScreen(cr.x, cr.y);
+  if(p.x < -30 || p.x > canvas.width+30 || p.y < -30 || p.y > canvas.height+30) return;
+  const bobY = Math.sin(cr.bob + performance.now()/500) * 2.5;
+  ctx.save();
+  ctx.translate(p.x, p.y + bobY);
+  const r = cr.r;
+  if(cr.type === 'crab'){
+    ctx.scale(cr.facing,1);
+    ctx.fillStyle = '#c9705a';
+    ctx.strokeStyle = 'rgba(12,34,51,0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(0,0,r*0.95,r*0.62,0,0,Math.PI*2);
+    ctx.fill(); ctx.stroke();
+    // claws
+    ctx.fillStyle = '#e08a70';
+    ctx.beginPath(); ctx.ellipse(-r*0.85,-r*0.35,r*0.32,r*0.22,-0.4,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(r*0.85,-r*0.35,r*0.32,r*0.22,0.4,0,Math.PI*2); ctx.fill();
+    // legs
+    ctx.strokeStyle = '#c9705a'; ctx.lineWidth = Math.max(1,r*0.09);
+    for(const s of [-1,1]){
+      for(let i=0;i<3;i++){
+        ctx.beginPath();
+        ctx.moveTo(s*r*0.55, r*0.1 + i*r*0.16);
+        ctx.lineTo(s*r*1.05, r*0.25 + i*r*0.2);
+        ctx.stroke();
+      }
+    }
+    // eyes
+    ctx.fillStyle = '#0c2233';
+    ctx.beginPath(); ctx.arc(-r*0.22,-r*0.55,r*0.09,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(r*0.22,-r*0.55,r*0.09,0,Math.PI*2); ctx.fill();
+  } else if(cr.type === 'seaweed'){
+    ctx.strokeStyle = '#3d8f6a';
+    ctx.lineCap = 'round';
+    for(let s=-1; s<=1; s+=2){
+      for(let i=0;i<2;i++){
+        const sway = Math.sin(cr.bob + performance.now()/400 + i) * r*0.35;
+        ctx.lineWidth = Math.max(1.5, r*0.16);
+        ctx.beginPath();
+        ctx.moveTo(s*r*0.28*(i+1), r*0.9);
+        ctx.quadraticCurveTo(s*r*0.28*(i+1)+sway, r*0.1, s*r*0.28*(i+1)+sway*1.3, -r*1.1);
+        ctx.stroke();
+      }
+    }
+  } else if(cr.type === 'snail'){
+    ctx.fillStyle = '#8fae7a';
+    ctx.strokeStyle = 'rgba(12,34,51,0.3)';
+    ctx.lineWidth = 1;
+    // body
+    ctx.beginPath();
+    ctx.ellipse(-r*0.1, r*0.4, r*0.75, r*0.32, 0, 0, Math.PI*2);
+    ctx.fill(); ctx.stroke();
+    // shell
+    ctx.fillStyle = '#c9915a';
+    ctx.beginPath();
+    ctx.arc(r*0.05, -r*0.1, r*0.55, 0, Math.PI*2);
+    ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = '#a4703c';
+    ctx.lineWidth = Math.max(1,r*0.05);
+    ctx.beginPath();
+    ctx.arc(r*0.05, -r*0.1, r*0.32, 0, Math.PI*1.5);
+    ctx.stroke();
+    // eye stalks
+    ctx.strokeStyle = '#8fae7a'; ctx.lineWidth = Math.max(1,r*0.07);
+    ctx.beginPath(); ctx.moveTo(-r*0.75,r*0.25); ctx.lineTo(-r*0.95,-r*0.15); ctx.stroke();
+    ctx.fillStyle = '#0c2233';
+    ctx.beginPath(); ctx.arc(-r*0.95,-r*0.15,r*0.08,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+function drawCritters(){
+  for(const cr of critters) drawCritter(cr);
+}
+
+const AI_NAMES = ['Bubbles','Finley','Nemo2','Coral','Splash','Marlin','Gil','Dory2','Kai','Nori','Reef','Wavy','Pearl','Squirt','Bloop',
+  'Ripple','Tide','Marina','Finn','Shelly','Barnacle','Current','Undertow','Driftwood','Anchor','Sable','Cove','Lagoon','Abyss','Naut',
+  'Kelpie','Sandy','Piper','Gully','Tidal','Whirl','Brine','Fathom','Siren','Nautilus','Blenny','Guppy','Puffer','Wren','Skiff',
+  'Costal','Reeflet','Sunfish','Moonfin','Starfin','Glider','Nomad','Wanderer','Pebble','Shoal','Bay','Delta','Estuary','Lurker',
+  'Zephyr','Misty','Foamy','Salty','Wade','Ebb','Flow','Bask','Glide','Fin','Scales','Minnow','Sardine','Herring','Angler',
+  'Bream','Perch','Trout2','Snapper','Grouper','Mackerel','Pike2','Roe','Tench','Chub','Dace','Loach','Barb','Rudd','Ide'];
+function randomSkinKeyForAI(){
+  const keys = Object.keys(SKINS);
+  return keys[Math.floor(Math.random()*keys.length)];
+}
+function spawnAI(existingSizeHint){
+  let size;
+  if(existingSizeHint !== undefined){
+    size = existingSizeHint;
+  } else if(Math.random() < 0.35){
+    size = 4 + Math.random()*8; // small schooling fish — easy prey, low threat
+  } else {
+    size = 12 + Math.random()*95;
+  }
+  const f = new Fish(false,
+    Math.random()*WORLD_W - WORLD_W/2,
+    Math.random()*WORLD_H - WORLD_H/2,
+    size, randomSkinKeyForAI(),
+    AI_NAMES[Math.floor(Math.random()*AI_NAMES.length)]
+  );
+  return f;
+}
+function initAI(){
+  aiFish = [];
+  for(let i=0;i<NUM_AI;i++) aiFish.push(spawnAI());
+}
+
+function initPlayer(){
+  player = new Fish(true, 0, 0, 10, save.activeSkin, save.username);
+}
+
+/* ============ INPUT ============ */
+let mouse = { x: window.innerWidth/2, y: window.innerHeight/2, active:false };
+let keys = {};
+window.addEventListener('keydown', e=>{ keys[e.key.toLowerCase()] = true; });
+window.addEventListener('keyup', e=>{ keys[e.key.toLowerCase()] = false; });
+canvas.addEventListener('mousemove', e=>{ mouse.x = e.clientX; mouse.y = e.clientY; mouse.active = true; });
+
+/* Mobile joystick / drag */
+let joystick = { active:false, baseX:0, baseY:0, dx:0, dy:0 };
+const joyBase = document.getElementById('joystickBase');
+const joyThumb = document.getElementById('joystickThumb');
+const joyZone = document.getElementById('joystickZone');
+
+function isTouchDevice(){ return ('ontouchstart' in window) || navigator.maxTouchPoints > 0; }
+
+joyZone.addEventListener('touchstart', e=>{
+  if(!gameRunning) return;
+  const t = e.changedTouches[0];
+  joystick.active = true;
+  joystick.baseX = t.clientX; joystick.baseY = t.clientY;
+  joystick.dx = 0; joystick.dy = 0;
+  joyBase.style.left = (t.clientX-50)+'px'; joyBase.style.top = (t.clientY-50)+'px';
+  joyBase.style.display = 'block';
+  joyThumb.style.left = (t.clientX-23)+'px'; joyThumb.style.top = (t.clientY-23)+'px';
+  joyThumb.style.display = 'block';
+  e.preventDefault();
+}, {passive:false});
+
+joyZone.addEventListener('touchmove', e=>{
+  if(!joystick.active) return;
+  const t = e.changedTouches[0];
+  let dx = t.clientX - joystick.baseX, dy = t.clientY - joystick.baseY;
+  const maxD = 50;
+  const dist = Math.hypot(dx,dy);
+  if(dist > maxD){ dx = dx/dist*maxD; dy = dy/dist*maxD; }
+  joystick.dx = dx/maxD; joystick.dy = dy/maxD;
+  joyThumb.style.left = (joystick.baseX+dx-23)+'px'; joyThumb.style.top = (joystick.baseY+dy-23)+'px';
+  e.preventDefault();
+}, {passive:false});
+
+function endJoystick(e){
+  joystick.active = false; joystick.dx = 0; joystick.dy = 0;
+  joyBase.style.display = 'none';
+  joyThumb.style.display = 'none';
+}
+joyZone.addEventListener('touchend', endJoystick);
+joyZone.addEventListener('touchcancel', endJoystick);
+
+/* Dash: Shift on keyboard, on-screen button on mobile */
+let isDashing = false;
+const dashBtn = document.getElementById('dashBtn');
+dashBtn.addEventListener('touchstart', e=>{ isDashing = true; dashBtn.classList.add('on'); e.preventDefault(); }, {passive:false});
+dashBtn.addEventListener('touchend', e=>{ isDashing = false; dashBtn.classList.remove('on'); e.preventDefault(); }, {passive:false});
+dashBtn.addEventListener('touchcancel', ()=>{ isDashing = false; dashBtn.classList.remove('on'); });
+window.addEventListener('keydown', e=>{ if(e.key === 'Shift') isDashing = true; });
+window.addEventListener('keyup', e=>{ if(e.key === 'Shift') isDashing = false; });
+window.addEventListener('blur', ()=>{ isDashing = false; dashBtn.classList.remove('on'); });
+
+/* ============ GAME LOOP ============ */
+function worldWrap(v, size){
+  const half = size/2;
+  if(v > half) return -half;
+  if(v < -half) return half;
+  return v;
+}
+
+function updatePlayer(dtMs){
+  let dirX=0, dirY=0, intensity=0;
+
+  if(joystick.active){
+    const mag = Math.hypot(joystick.dx, joystick.dy);
+    if(mag > 0.08){
+      dirX = joystick.dx/mag; dirY = joystick.dy/mag;
+      intensity = Math.min(1, mag);
+    }
+  } else if(keys['w']||keys['a']||keys['s']||keys['d']||keys['arrowup']||keys['arrowdown']||keys['arrowleft']||keys['arrowright']){
+    let kx=0, ky=0;
+    if(keys['w']||keys['arrowup']) ky -= 1;
+    if(keys['s']||keys['arrowdown']) ky += 1;
+    if(keys['a']||keys['arrowleft']) kx -= 1;
+    if(keys['d']||keys['arrowright']) kx += 1;
+    const mag = Math.hypot(kx,ky);
+    if(mag > 0){
+      dirX = kx/mag; dirY = ky/mag;
+      intensity = 1;
+    }
+  } else if(mouse.active){
+    const mx = mouse.x - canvas.width/2, my = mouse.y - canvas.height/2;
+    const mag = Math.hypot(mx,my);
+    if(mag > 4){
+      dirX = mx/mag; dirY = my/mag;
+      intensity = Math.min(1, mag/60);
+    }
+  }
+
+  const dashing = isDashing && intensity > 0 && player.size > 1;
+
+  if(dashing && !player.wasDashing){
+    save.lifetime.dashesUsed++;
+  }
+  player.wasDashing = dashing;
+
+  if(intensity > 0){
+    player.dirX = dirX; player.dirY = dirY;
+    let spd = speedForRadius(player.r) * intensity;
+    if(dashing) spd *= DASH_SPEED_MULT;
+    player.x += dirX*spd;
+    player.y += dirY*spd;
+    player.tailPhase += 0.25 + spd*0.05;
+  } else {
+    player.tailPhase += 0.08;
+  }
+
+  if(dashing){
+    player.size = Math.max(1, player.size - DASH_DRAIN_PER_SEC*(dtMs/1000));
+    player.updateRadius();
+  }
+
+  player.x = Math.max(-WORLD_W/2, Math.min(WORLD_W/2, player.x));
+  player.y = Math.max(-WORLD_H/2, Math.min(WORLD_H/2, player.y));
+}
+
+function updateAI(f){
+  // find nearest threats and prey within vision
+  const vision = 420 + f.r*2;
+  let nearestThreat = null, threatDist = Infinity;
+  let nearestPrey = null, preyDist = Infinity;
+
+  const consider = (other)=>{
+    if(other === f || !other.alive) return;
+    const d = Math.hypot(other.x-f.x, other.y-f.y);
+    if(d > vision) return;
+    if(other.r > f.r*1.12){
+      if(d < threatDist){ threatDist = d; nearestThreat = other; }
+    } else if(other.r < f.r*0.88){
+      if(d < preyDist){ preyDist = d; nearestPrey = other; }
+    }
+  };
+  consider(player);
+  for(const o of aiFish) consider(o);
+
+  // small state stickiness so AI doesn't flicker between behaviours every frame
+  if(f.stateLock === undefined) f.stateLock = 0;
+  let desiredState = nearestThreat ? 'flee' : (nearestPrey ? 'chase' : 'wander');
+  if(desiredState !== f.aiState && f.stateLock > 0){
+    desiredState = f.aiState; // keep previous state a little longer
+  }
+  if(desiredState !== f.aiState){
+    f.aiState = desiredState;
+    f.stateLock = 10; // frames before allowing another switch
+  } else if(f.stateLock > 0){
+    f.stateLock--;
+  }
+
+  let tx, ty;
+  if(f.aiState === 'flee' && nearestThreat){
+    tx = f.x - (nearestThreat.x - f.x);
+    ty = f.y - (nearestThreat.y - f.y);
+  } else if(f.aiState === 'chase' && nearestPrey){
+    tx = nearestPrey.x; ty = nearestPrey.y;
+  } else {
+    f.aiState = 'wander';
+    f.wanderTimer -= 1;
+    if(f.wanderTimer <= 0){
+      f.wanderAngle += (Math.random()-0.5)*1.4;
+      f.wanderTimer = 60 + Math.random()*60;
+    }
+    tx = f.x + Math.cos(f.wanderAngle)*200;
+    ty = f.y + Math.sin(f.wanderAngle)*200;
+  }
+
+  // steer away from the world edges well before the fish gets there, so it
+  // turns inward on its own instead of sliding along (or poking through) the border
+  const edgeMargin = 260 + f.r;
+  const halfW = WORLD_W/2, halfH = WORLD_H/2;
+  let edgePushX = 0, edgePushY = 0;
+  if(f.x > halfW - edgeMargin) edgePushX = -(f.x - (halfW - edgeMargin));
+  else if(f.x < -halfW + edgeMargin) edgePushX = (-halfW + edgeMargin) - f.x;
+  if(f.y > halfH - edgeMargin) edgePushY = -(f.y - (halfH - edgeMargin));
+  else if(f.y < -halfH + edgeMargin) edgePushY = (-halfH + edgeMargin) - f.y;
+  if(edgePushX !== 0 || edgePushY !== 0){
+    tx += edgePushX*3;
+    ty += edgePushY*3;
+    // near a corner or fleeing straight at a wall, override wander entirely so it doesn't stall
+    if(f.aiState === 'wander'){
+      tx = f.x + edgePushX*3;
+      ty = f.y + edgePushY*3;
+    }
+  }
+
+  let dx = tx-f.x, dy = ty-f.y;
+  const dist = Math.hypot(dx,dy) || 1;
+  dx/=dist; dy/=dist;
+
+  // smoothly turn toward the desired direction instead of snapping to it —
+  // this stops the fish from looking like it wants to face two ways at once.
+  const turnRate = 0.12;
+  let ndx = f.dirX + (dx - f.dirX) * turnRate;
+  let ndy = f.dirY + (dy - f.dirY) * turnRate;
+  const nmag = Math.hypot(ndx,ndy) || 1;
+  f.dirX = ndx/nmag; f.dirY = ndy/nmag;
+
+  // AI can dash too — a short burst of speed (draining size, same as the player)
+  // used to close in on prey or escape a predator, not just the human player
+  if(f.dashCooldown === undefined){ f.dashCooldown = Math.floor(Math.random()*120); f.dashFramesLeft = 0; }
+  let aiDashing = false;
+  if(f.dashFramesLeft > 0){
+    f.dashFramesLeft--;
+    aiDashing = true;
+  } else if(f.dashCooldown > 0){
+    f.dashCooldown--;
+  } else if(f.size > 4){
+    const wantsToFlee = f.aiState==='flee' && threatDist < vision*0.45;
+    const wantsToChase = f.aiState==='chase' && preyDist < f.r*3.5;
+    if(wantsToFlee || wantsToChase){
+      f.dashFramesLeft = 22 + Math.floor(Math.random()*14);
+      f.dashCooldown = 180 + Math.floor(Math.random()*180);
+      aiDashing = true;
+    }
+  }
+  if(aiDashing){
+    f.size = Math.max(1, f.size - DASH_DRAIN_PER_SEC/60);
+    f.updateRadius();
+  }
+
+  // chase harder when the target has grown large — makes the AI feel like it's
+  // actively racing to catch up rather than casually wandering
+  const chaseBoost = f.aiState === 'chase' ? 1 + Math.min(0.5, Math.max(0,(player.size-20)/200)) : 1;
+  const dashMult = aiDashing ? DASH_SPEED_MULT : 1;
+  const spd = speedForRadius(f.r) * (f.aiState==='wander'?0.6:1) * chaseBoost * dashMult;
+  f.x += f.dirX*spd;
+  f.y += f.dirY*spd;
+  f.tailPhase += 0.2 + spd*0.05;
+
+  // keep the whole body (not just the center) inside the world so the head
+  // never pokes past the border
+  f.x = Math.max(-halfW+f.r, Math.min(halfW-f.r, f.x));
+  f.y = Math.max(-halfH+f.r, Math.min(halfH-f.r, f.y));
+}
+
+function handleEating(){
+  // player eats food
+  for(let i=foods.length-1;i>=0;i--){
+    const fd = foods[i];
+    const d = Math.hypot(fd.x-player.x, fd.y-player.y);
+    if(d < player.r*0.9 + fd.r){
+      foods.splice(i,1);
+      foods.push(spawnFood());
+      player.size += 1.1;
+      player.updateRadius();
+      stats.eaten++;
+      save.lifetime.totalFood++;
+      progressQuest('eatFood', 1);
+    }
+  }
+  // ai eats food (lightweight, no quest impact) — the bigger the player gets,
+  // the hungrier the AI becomes, so it keeps growing to stay a real threat
+  const aiGrowthMult = 1 + Math.min(1.6, Math.max(0, (player.size-20)/140));
+  for(const f of aiFish){
+    for(let i=foods.length-1;i>=0;i--){
+      const fd = foods[i];
+      const d = Math.hypot(fd.x-f.x, fd.y-f.y);
+      if(d < f.r*0.9 + fd.r){
+        foods.splice(i,1);
+        foods.push(spawnFood());
+        f.size += 1.1 * aiGrowthMult;
+        f.updateRadius();
+      }
+    }
+  }
+
+  // player eats critters (crab / seaweed / snail) — rare, worth +3 size
+  for(let i=critters.length-1;i>=0;i--){
+    const cr = critters[i];
+    const d = Math.hypot(cr.x-player.x, cr.y-player.y);
+    if(d < player.r*0.9 + cr.r*0.8){
+      critters.splice(i,1);
+      critters.push(spawnCritter());
+      player.size += CRITTER_SIZE_BONUS;
+      player.updateRadius();
+      stats.eaten++;
+      save.lifetime.totalCritters++;
+      progressQuest('eatFood', 1);
+      showToast(`+${CRITTER_SIZE_BONUS} size!`);
+    }
+  }
+  // ai eats critters too (no quest impact)
+  for(const f of aiFish){
+    for(let i=critters.length-1;i>=0;i--){
+      const cr = critters[i];
+      const d = Math.hypot(cr.x-f.x, cr.y-f.y);
+      if(d < f.r*0.9 + cr.r*0.8){
+        critters.splice(i,1);
+        critters.push(spawnCritter());
+        f.size += CRITTER_SIZE_BONUS * aiGrowthMult;
+        f.updateRadius();
+      }
+    }
+  }
+
+  // player & AI eat totems (objective, no size gain — destroys the totem)
+  for(let i=totems.length-1;i>=0;i--){
+    const t = totems[i];
+    if(!t.alive) continue;
+    const dP = Math.hypot(t.x-player.x, t.y-player.y);
+    if(player.alive && dP < player.r*0.9 + t.r*0.7){
+      eatTotem(t, player);
+      continue;
+    }
+    for(const f of aiFish){
+      if(!f.alive) continue;
+      const d = Math.hypot(t.x-f.x, t.y-f.y);
+      if(d < f.r*0.9 + t.r*0.7){
+        eatTotem(t, f);
+        break;
+      }
+    }
+  }
+
+  // boss drop pellets (+10 size after Megalodon dies)
+  for(let i=bossDropPellets.length-1;i>=0;i--){
+    const d = bossDropPellets[i];
+    const dP = Math.hypot(d.x-player.x, d.y-player.y);
+    if(player.alive && dP < player.r*0.9 + d.r){
+      bossDropPellets.splice(i,1);
+      player.size += d.size;
+      player.updateRadius();
+      stats.eaten++;
+      showToast(`+${d.size} size!`);
+      continue;
+    }
+    for(const f of aiFish){
+      if(!f.alive) continue;
+      const dd = Math.hypot(d.x-f.x, d.y-f.y);
+      if(dd < f.r*0.9 + d.r){
+        bossDropPellets.splice(i,1);
+        f.size += d.size;
+        f.updateRadius();
+        break;
+      }
+    }
+  }
+
+  // fish vs fish — any positive size edge wins (even by 1); a dead-even tie does nothing
+  const allFish = [player, ...aiFish];
+  for(let i=0;i<allFish.length;i++){
+    const A = allFish[i];
+    if(!A.alive) continue;
+    for(let j=0;j<allFish.length;j++){
+      if(i===j) continue;
+      const B = allFish[j];
+      if(!B.alive) continue;
+      if(A.size <= B.size) continue; // A must be strictly bigger, ties do nothing
+
+      const d = Math.hypot(A.x-B.x, A.y-B.y);
+      // B's head — the tip of its body it's facing toward
+      const headX = B.x + B.dirX*B.r*0.85, headY = B.y + B.dirY*B.r*0.85;
+      const dHead = Math.hypot(A.x-headX, A.y-headY);
+      const bodyHit = d < A.r*0.85 + B.r*0.35;
+      const headHit = dHead < A.r*0.85; // bigger fish sitting right on top of B's head
+
+      if(bodyHit || headHit){
+        // A eats B
+        B.alive = false;
+        A.size += Math.max(4, B.size*0.55);
+        A.updateRadius();
+        A.kills++;
+        if(A.isPlayer){
+          stats.kills++;
+          save.lifetime.totalKills++;
+          progressQuest('eatFish', 1);
+        }
+      }
+    }
+  }
+
+  // respawn eaten AI
+  for(let i=0;i<aiFish.length;i++){
+    if(!aiFish[i].alive){
+      aiFish[i] = spawnAI();
+    }
+  }
+
+  // player death
+  if(!player.alive){
+    endGame();
+  }
+
+  // size quest check
+  setQuestProgressAbsolute('reachSize', Math.floor(player.size));
+}
+
+function updateCamera(){
+  camera.x = player.x;
+  camera.y = player.y;
+}
+
+/* ============ RENDER ============ */
+function worldToScreen(x,y){
+  return { x: x - camera.x + canvas.width/2, y: y - camera.y + canvas.height/2 };
+}
+
+function drawGrid(){
+  ctx.save();
+  ctx.strokeStyle = 'rgba(120,200,255,0.06)';
+  ctx.lineWidth = 1;
+  const gridSize = 100;
+  const startX = -WORLD_W/2, endX = WORLD_W/2;
+  const startY = -WORLD_H/2, endY = WORLD_H/2;
+  const s0 = worldToScreen(startX,0), soY0 = worldToScreen(0,startY);
+  ctx.beginPath();
+  for(let x = Math.floor(startX/gridSize)*gridSize; x<=endX; x+=gridSize){
+    const p1 = worldToScreen(x, startY), p2 = worldToScreen(x, endY);
+    ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y);
+  }
+  for(let y = Math.floor(startY/gridSize)*gridSize; y<=endY; y+=gridSize){
+    const p1 = worldToScreen(startX, y), p2 = worldToScreen(endX, y);
+    ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y);
+  }
+  ctx.stroke();
+
+  // world border
+  const tl = worldToScreen(-WORLD_W/2,-WORLD_H/2);
+  ctx.strokeStyle = 'rgba(180,120,100,0.35)';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(tl.x, tl.y, WORLD_W, WORLD_H);
+  ctx.restore();
+}
+
+function drawFood(){
+  for(const fd of foods){
+    const p = worldToScreen(fd.x, fd.y);
+    if(p.x < -20 || p.x > canvas.width+20 || p.y < -20 || p.y > canvas.height+20) continue;
+    ctx.beginPath();
+    ctx.fillStyle = `hsl(${fd.hue},45%,68%)`;
+    ctx.arc(p.x,p.y,fd.r,0,Math.PI*2);
+    ctx.fill();
+  }
+}
+
+function drawFish(f){
+  const p = worldToScreen(f.x, f.y);
+  if(p.x < -f.r*3 || p.x > canvas.width+f.r*3 || p.y < -f.r*3 || p.y > canvas.height+f.r*3) return;
+  ctx.save();
+  ctx.translate(p.x,p.y);
+  const angle = Math.atan2(f.dirY, f.dirX);
+  ctx.rotate(angle);
+  renderSkin(ctx, f.r, f.tailPhase, f.skinKey || 'classic');
+  ctx.restore();
+
+  // name + size label
+  const label = `${f.name} · ${Math.floor(f.size)}`;
+  ctx.save();
+  ctx.font = '600 13px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fillText(label, p.x+1, p.y - f.r - 9);
+  ctx.fillStyle = f.isPlayer ? '#a8d0c6' : '#eaf4f7';
+  ctx.fillText(label, p.x, p.y - f.r - 10);
+  ctx.restore();
+}
+
+/* ============ MINIMAP ============ */
+const MINIMAP_SIZE = 150;
+const MINIMAP_MARGIN = 14;
+function drawMinimap(){
+  const x0 = canvas.width - MINIMAP_SIZE - MINIMAP_MARGIN;
+  const y0 = canvas.height - MINIMAP_SIZE - MINIMAP_MARGIN;
+  ctx.save();
+  ctx.fillStyle = 'rgba(12,34,51,0.7)';
+  ctx.strokeStyle = 'rgba(210,232,240,0.25)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  if(ctx.roundRect) ctx.roundRect(x0,y0,MINIMAP_SIZE,MINIMAP_SIZE,10);
+  else ctx.rect(x0,y0,MINIMAP_SIZE,MINIMAP_SIZE);
+  ctx.fill();
+  ctx.stroke();
+
+  const toMap = (wx,wy)=>({
+    x: x0 + ((wx + WORLD_W/2) / WORLD_W) * MINIMAP_SIZE,
+    y: y0 + ((wy + WORLD_H/2) / WORLD_H) * MINIMAP_SIZE
+  });
+
+  // AI dots
+  ctx.fillStyle = 'rgba(210,232,240,0.55)';
+  for(const f of aiFish){
+    if(!f.alive) continue;
+    const mp = toMap(f.x,f.y);
+    ctx.beginPath();
+    ctx.arc(mp.x, mp.y, 1.6, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // player dot
+  if(player && player.alive){
+    const mp = toMap(player.x, player.y);
+    ctx.fillStyle = '#7fb0a8';
+    ctx.beginPath();
+    ctx.arc(mp.x, mp.y, 3.2, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // crown marker over whoever's currently #1 on the leaderboard
+  const leader = [player, ...aiFish].filter(f=>f.alive).sort((a,b)=>b.size-a.size)[0];
+  if(leader){
+    const mp = toMap(leader.x, leader.y);
+    ctx.save();
+    ctx.translate(mp.x, mp.y - 6);
+    ctx.fillStyle = '#d9b979';
+    ctx.beginPath();
+    ctx.moveTo(-3.2,2.2);
+    ctx.lineTo(-3.2,-1.2);
+    ctx.lineTo(-1.6,0.6);
+    ctx.lineTo(0,-2.2);
+    ctx.lineTo(1.6,0.6);
+    ctx.lineTo(3.2,-1.2);
+    ctx.lineTo(3.2,2.2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // boss skull marker (hidden while Bessie is running underground, invisible)
+  if(boss && !boss.underground){
+    const mp = toMap(boss.x, boss.y);
+    ctx.save();
+    ctx.translate(mp.x, mp.y);
+    ctx.globalAlpha = 0.6 + 0.4*Math.sin(performance.now()/200);
+    ctx.fillStyle = '#d95a46';
+    ctx.beginPath();
+    ctx.arc(0,-1.5,4.4,Math.PI,0);
+    ctx.lineTo(3.2,3.4);
+    ctx.lineTo(-3.2,3.4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#0c2233';
+    ctx.beginPath(); ctx.arc(-1.6,-1.2,0.9,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(1.6,-1.2,0.9,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  // viewport rectangle
+  const vw = (canvas.width / WORLD_W) * MINIMAP_SIZE;
+  const vh = (canvas.height / WORLD_H) * MINIMAP_SIZE;
+  const vc = toMap(camera.x, camera.y);
+  ctx.strokeStyle = 'rgba(234,244,247,0.5)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(vc.x - vw/2, vc.y - vh/2, vw, vh);
+  ctx.restore();
+}
+
+function render(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawGrid();
+  drawFood();
+  drawCritters();
+  drawTotems();
+  drawBossDrops();
+  const allFish = [...aiFish, player].sort((a,b)=>a.r-b.r);
+  for(const f of allFish) if(f.alive) drawFish(f);
+  drawBoss();
+  drawMinimap();
+}
+
+/* ============ HUD ============ */
+function updateHUD(){
+  document.getElementById('sizePill').textContent = `Size: ${Math.floor(player.size)}`;
+  const allRanked = [player, ...aiFish].filter(f=>f.alive).sort((a,b)=>b.size-a.size).slice(0,6);
+  const lb = document.getElementById('lbList');
+  lb.innerHTML = allRanked.map((f,i)=>
+    `<div class="lb-entry ${f.isPlayer?'me':''}">${i+1}. ${f.name}<span>${Math.floor(f.size)}</span></div>`
+  ).join('');
+  updateMiniQuestUI();
+  updateBossHud();
+}
+
+function updateBossHud(){
+  const bossHud = document.getElementById('bossHud');
+  const warnOverlay = document.getElementById('bossWarnOverlay');
+  if(!boss){
+    bossHud.style.display = 'none';
+    warnOverlay.style.display = 'none';
+    bossHud.classList.remove('stunned');
+    return;
+  }
+  bossHud.style.display = 'flex';
+  document.getElementById('bossNameLbl').textContent = boss.type === 'bessie' ? 'Bessie' : 'The Megalodon';
+  document.getElementById('bossHealthFill').style.width = (boss.health/boss.maxHealth*100)+'%';
+  bossHud.classList.toggle('stunned', boss.state === 'stunned');
+
+  if(boss.type === 'megalodon'){
+    if(boss.state === 'telegraph'){
+      warnOverlay.style.display = 'block';
+      const labels = { dash:'The Megalodon is winding up a DASH attack!', jaw:'The Megalodon is lining up its JAWS!', tooth:'Teeth are raining down — watch the red circles!' };
+      warnOverlay.textContent = labels[boss.attackType] || 'Incoming attack!';
+    } else if(boss.state === 'executing' && boss.attackType === 'tooth'){
+      warnOverlay.style.display = 'block';
+      warnOverlay.textContent = 'Teeth are raining down — watch the red circles!';
+    } else {
+      warnOverlay.style.display = 'none';
+    }
+  } else if(boss.type === 'bessie'){
+    if(boss.state === 'stunned'){
+      warnOverlay.style.display = 'block';
+      warnOverlay.textContent = 'Bessie is stunned — go eat her!';
+    } else if(boss.state === 'telegraph'){
+      warnOverlay.style.display = 'block';
+      const labels = { waterjet:'Bessie is charging a Water Jet!', tsunami:'Bessie has gone underground — Tsunami Charge incoming!', whirlpool:'Whirlpools are forming — watch the red circles!' };
+      warnOverlay.textContent = labels[boss.attackType] || 'Incoming attack!';
+    } else if(boss.state === 'executing' && boss.attackType === 'whirlpool'){
+      warnOverlay.style.display = 'block';
+      warnOverlay.textContent = 'Whirlpools are pulling everything in!';
+    } else if(boss.state === 'executing' && boss.attackType === 'tsunami'){
+      warnOverlay.style.display = 'block';
+      warnOverlay.textContent = 'Tsunami waves incoming!';
+    } else {
+      warnOverlay.style.display = 'none';
+    }
+  }
+}
+
+function bossTimerLabel(){
+  if(boss){
+    return boss.type === 'bessie' ? 'Bessie is here!' : 'The Megalodon is here!';
+  }
+  const ms = msUntilNextBoss();
+  const s = Math.max(0, Math.ceil(ms/1000));
+  const m = Math.floor(s/60), sec = s%60;
+  return `Boss in ${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+function updateBossTimerPill(){
+  const label = bossTimerLabel();
+  const active = !!boss;
+  const pill = document.getElementById('bossTimerPill');
+  const txt = document.getElementById('bossTimerText');
+  txt.textContent = label;
+  pill.classList.toggle('active', active);
+  const pillHud = document.getElementById('bossTimerPillHud');
+  const txtHud = document.getElementById('bossTimerTextHud');
+  if(pillHud && txtHud){
+    txtHud.textContent = label;
+    pillHud.classList.toggle('active', active);
+  }
+}
+setInterval(()=>{
+  if(!mainMenu.classList.contains('hidden')) updateBossTimerPill();
+}, 1000);
+
+/* ============ GAME LIFECYCLE ============ */
+let animFrameId = null;
+let lastFrameTime = performance.now();
+function gameLoop(){
+  if(!gameRunning) return;
+  const now = performance.now();
+  const dtMs = Math.min(100, now - lastFrameTime);
+  lastFrameTime = now;
+
+  updatePlayer(dtMs);
+  for(const f of aiFish) if(f.alive) updateAI(f);
+  handleEating();
+  updateCamera();
+
+  if(!boss){
+    // spawns exactly on the real-world 20-minute mark, same mechanism as the hourly quest refresh —
+    // unaffected by whether the player was mid-game or sitting at the menu
+    const boundary = currentBossBoundary();
+    if(lastBossBoundary === null) lastBossBoundary = boundary;
+    if(boundary !== lastBossBoundary){
+      lastBossBoundary = boundary;
+      spawnBoss();
+    }
+  } else {
+    updateBoss(dtMs);
+
+    if(boss && boss.type === 'megalodon'){
+      // boss body itself is lethal on contact outside of scripted attacks
+      const allTargets = [player, ...aiFish].filter(f=>f.alive);
+      for(const f of allTargets){
+        const d = Math.hypot(f.x-boss.x, f.y-boss.y);
+        if(d < boss.r*0.75 + f.r*0.4){
+          killFishByBoss(f);
+        }
+      }
+    } else if(boss && boss.type === 'bessie' && !boss.underground){
+      // touching Bessie is always fatal for one side: eat her while stunned,
+      // or she eats you the rest of the time
+      const allTargets = [player, ...aiFish].filter(f=>f.alive);
+      for(const f of allTargets){
+        if(!boss) break;
+        const d = Math.hypot(f.x-boss.x, f.y-boss.y);
+        if(d < boss.r*0.78 + f.r*0.4){
+          if(boss.state === 'stunned'){
+            killBessie(f.isPlayer);
+          } else {
+            killFishByBoss(f);
+          }
+        }
+      }
+    }
+  }
+
+  render();
+  elapsedFrames++;
+  if(elapsedFrames % 30 === 0){
+    setQuestProgressAbsolute('survive', Math.floor(elapsedFrames/60));
+    if(player.size > save.lifetime.maxSize) save.lifetime.maxSize = Math.floor(player.size);
+  }
+  if(elapsedFrames % 90 === 0) checkAchievements();
+  if(elapsedFrames % 20 === 0) updateHUD();
+  updateBossTimerPill();
+  animFrameId = requestAnimationFrame(gameLoop);
+}
+
+function startGame(){
+  mainMenu.classList.add('hidden');
+  gameOverMenu.classList.add('hidden');
+  hud.classList.remove('hidden');
+  miniQuest.classList.remove('hidden');
+  dashBtn.style.display = isTouchDevice() ? 'flex' : 'none';
+  initPlayer();
+  initAI();
+  initFoods();
+  initCritters();
+  camera.x = 0; camera.y = 0;
+  stats = { eaten:0, kills:0 };
+  elapsedFrames = 0;
+  boss = null;
+  totems = [];
+  bossDropPellets = [];
+  playerTotemsEatenThisBoss = 0;
+  gameRunning = true;
+  lastFrameTime = performance.now();
+  save.lifetime.gamesPlayed++;
+  persist();
+  checkAchievements();
+  getActiveQuestDefs();
+  updateMiniQuestUI();
+  updateHUD();
+  updateBossHud();
+  if(animFrameId) cancelAnimationFrame(animFrameId);
+  gameLoop();
+}
+
+function endGame(){
+  gameRunning = false;
+  hud.classList.add('hidden');
+  miniQuest.classList.add('hidden');
+  document.getElementById('bossHud').style.display = 'none';
+  document.getElementById('bossWarnOverlay').style.display = 'none';
+  dashBtn.style.display = 'none';
+  dashBtn.classList.remove('on');
+  isDashing = false;
+  joyBase.style.display='none'; joyThumb.style.display='none'; joystick.active=false;
+  const earned = Math.max(2, Math.floor(player.size * 0.4 + stats.kills*3));
+  save.currency += earned;
+  if(player.size > save.lifetime.maxSize) save.lifetime.maxSize = Math.floor(player.size);
+  persist();
+  checkAchievements();
+  document.getElementById('finalSize').textContent = Math.floor(player.size);
+  document.getElementById('finalScore').textContent = Math.floor(player.size*10 + stats.kills*50);
+  document.getElementById('earnedFood').textContent = earned;
+  updateCurrencyDisplays();
+  gameOverMenu.classList.remove('hidden');
+  if(animFrameId) cancelAnimationFrame(animFrameId);
+}
+
+document.getElementById('startBtn').addEventListener('click', startGame);
+document.getElementById('retryBtn').addEventListener('click', startGame);
+document.getElementById('menuBtn').addEventListener('click', ()=>{
+  gameOverMenu.classList.add('hidden');
+  mainMenu.classList.remove('hidden');
+  updateQuestMenuUI();
+  updateCurrencyDisplays();
+});
+
+/* ============ INIT ============ */
+updateCurrencyDisplays();
+updateQuestMenuUI();
+renderAvatar();
+setInterval(renderAvatar, 300);
+
+})();
+</script>
+</body>
+</html>
