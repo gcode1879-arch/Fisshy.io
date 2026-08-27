@@ -7,7 +7,7 @@
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; }
   html,body { width:100%; height:100%; overflow:hidden; background:#0c2233; font-family:'Segoe UI',Tahoma,Verdana,sans-serif; }
-  #gameCanvas { display:block; background:linear-gradient(180deg,#164a63,#0c2233); }
+  #gameCanvas { display:block; position:relative; z-index:0; background:linear-gradient(180deg,#164a63,#0c2233); }
 
   .overlay {
     position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
@@ -39,15 +39,26 @@
   .subtitle { color:#8fb4c4; font-size:0.82em; margin-bottom:18px; letter-spacing:2px; text-transform:uppercase;}
 
   .profile-row {
-    display:flex; align-items:center; gap:12px; justify-content:center; margin:14px 0 20px;
-    background:rgba(255,255,255,0.04); padding:10px 14px; border-radius:10px;
+    display:flex; align-items:center; gap:10px; justify-content:center; margin:14px 0 20px;
+    background:rgba(255,255,255,0.04); padding:10px 14px; border-radius:10px; flex-wrap:wrap;
   }
-  #avatarPreview { width:46px; height:46px; border-radius:50%; background:#1c4a63; display:flex; align-items:center; justify-content:center; }
+  .profile-id { display:flex; align-items:center; gap:12px; flex:1 1 auto; min-width:0; }
+  #avatarPreview { width:46px; height:46px; border-radius:50%; background:#1c4a63; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
   #usernameInput {
     background:rgba(0,0,0,0.2); border:1px solid rgba(210,232,240,0.2); border-radius:8px;
-    color:#eaf4f7; padding:9px 12px; font-size:1em; width:170px; outline:none; text-align:center;
+    color:#eaf4f7; padding:9px 12px; font-size:1em; width:auto; flex:1 1 80px; min-width:70px; outline:none; text-align:center;
   }
   #usernameInput:focus { border-color:#5c9aad; }
+
+  .profile-account-btn {
+    display:flex; align-items:center; gap:6px; flex-shrink:0; max-width:120px;
+    background:rgba(255,255,255,0.06); border:1px solid rgba(210,232,240,0.22); border-radius:20px;
+    color:#eaf4f7; padding:9px 13px; font-size:0.78em; font-weight:700; letter-spacing:0.2px;
+    cursor:pointer; transition:border-color .15s ease, background .15s ease;
+  }
+  .profile-account-btn:hover { border-color:#5c9aad; background:rgba(255,255,255,0.1); }
+  .profile-account-btn .icon { flex-shrink:0; width:1.1em; height:1.1em; }
+  .profile-account-btn span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
   .currency-pill {
     display:inline-flex; align-items:center; gap:6px;
@@ -110,26 +121,20 @@
   .skin-card:hover { border-color:rgba(210,232,240,0.35); }
   .skin-card.owned { border-color:rgba(127,176,168,0.4); }
   .skin-card.equipped { border-color:#5c9aad; background:rgba(92,154,173,0.12); }
-  .skin-card.rarity-golden { box-shadow:0 0 12px rgba(232,201,77,0.3); border-color:rgba(232,201,77,0.35); }
-  .skin-card.rarity-amethyst { box-shadow:0 0 14px rgba(163,116,217,0.35); border-color:rgba(163,116,217,0.4); }
-  .skin-card.rarity-blood { box-shadow:0 0 16px rgba(217,82,77,0.4); border-color:rgba(217,82,77,0.45); }
-  .skin-card.rarity-exclusive { box-shadow:0 0 18px rgba(0,0,0,0.6); border-color:rgba(255,255,255,0.25); }
+  .skin-card.rarity-golden { box-shadow:0 0 12px rgba(232,201,77,0.35); border-color:rgba(232,201,77,0.4); }
+  .skin-card.rarity-amethyst { box-shadow:0 0 14px rgba(163,116,217,0.4); border-color:rgba(163,116,217,0.45); }
+  .skin-card.rarity-blood { box-shadow:0 0 16px rgba(217,82,77,0.45); border-color:rgba(217,82,77,0.5); }
+  .skin-card.rarity-emerald { box-shadow:0 0 16px rgba(61,219,122,0.45); border-color:rgba(61,219,122,0.5); }
+  .skin-card.rarity-super { box-shadow:0 0 20px rgba(255,110,199,0.5),0 0 10px rgba(120,200,255,0.35); border-color:rgba(255,110,199,0.55); }
+  .skin-card.rarity-exclusive { box-shadow:0 0 20px rgba(20,20,26,0.7),0 0 8px rgba(160,140,220,0.3); border-color:rgba(20,20,26,0.8); }
   .skin-rarity { font-size:0.7em; font-weight:700; letter-spacing:0.5px; margin-bottom:4px; }
   .skin-rarity.rarity-plain { color:#7096a4; }
   .skin-rarity.rarity-golden { color:#e8c94d; }
   .skin-rarity.rarity-amethyst { color:#a374d9; }
   .skin-rarity.rarity-blood { color:#d9524d; }
+  .skin-rarity.rarity-emerald { color:#3ddb7a; }
+  .skin-rarity.rarity-super { color:#ff6ec7; }
   .skin-rarity.rarity-exclusive { color:#cfcfcf; }
-  .skin-card.rarity-golden { box-shadow:0 0 12px rgba(232,211,71,0.35); border-color:rgba(232,211,71,0.4); }
-  .skin-card.rarity-amethyst { box-shadow:0 0 15px rgba(163,109,224,0.4); border-color:rgba(163,109,224,0.45); }
-  .skin-card.rarity-blood { box-shadow:0 0 18px rgba(217,60,46,0.45); border-color:rgba(217,60,46,0.5); }
-  .skin-card.rarity-exclusive { box-shadow:0 0 20px rgba(20,20,26,0.7),0 0 8px rgba(160,140,220,0.3); border-color:rgba(20,20,26,0.8); }
-  .rarity-label { font-size:0.68em; font-weight:700; letter-spacing:0.5px; margin-top:2px; }
-  .rarity-label.rarity-Plain { color:#7096a4; }
-  .rarity-label.rarity-Golden { color:#e8d347; }
-  .rarity-label.rarity-Amethyst { color:#a36de0; }
-  .rarity-label.rarity-Blood { color:#e05c46; }
-  .rarity-label.rarity-Exclusive { color:#c9c9d9; }
   .skin-canvas-wrap { display:flex; justify-content:center; margin-bottom:8px; }
   .skin-name { font-weight:700; font-size:0.88em; margin-bottom:4px; }
   .skin-price { font-size:0.78em; color:#d9b979; font-weight:700;}
@@ -208,8 +213,8 @@
   .boss-timer-pill.active { background:rgba(217,90,70,0.22); border-color:#d95a46; color:#ffb3a0; }
 
   #dashBtn {
-    position:fixed; z-index:21; display:none;
-    left:14px; bottom:220px;
+    position:fixed; z-index:30; display:none;
+    bottom:14px;
     width:78px; height:78px; border-radius:50%;
     background:rgba(217,90,70,0.55); border:2px solid rgba(255,255,255,0.45);
     color:#fff; font-weight:700; font-size:0.8em; letter-spacing:0.5px;
@@ -217,6 +222,10 @@
     -webkit-user-select:none; user-select:none;
     box-shadow:0 4px 14px rgba(0,0,0,0.35);
   }
+  /* both sit "on top of" the minimap (bottom-right, 150px box, 14px margin) —
+     side-right hugs the minimap's right edge, side-left its left edge */
+  #dashBtn.side-right { right:14px; }
+  #dashBtn.side-left { right:86px; }
   #dashBtn.on { background:rgba(217,90,70,0.8); transform:translate(0,0) scale(0.94); }
   #dashBtn .icon { width:1.8em; height:1.8em; margin:0; }
   #dashBtn { flex-direction:column; gap:2px; }
@@ -291,6 +300,14 @@
       <path d="M12 3v18M3 12h18M5.5 5.5l13 13M18.5 5.5l-13 13" stroke="currentColor" stroke-width="1.3"/>
       <circle cx="12" cy="12" r="1.6" fill="currentColor"/>
     </symbol>
+    <symbol id="icon-sound" viewBox="0 0 24 24">
+      <path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/>
+      <path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-mute" viewBox="0 0 24 24">
+      <path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/>
+      <path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </symbol>
     <symbol id="icon-skull" viewBox="0 0 24 24">
       <path d="M12 3c-4.4 0-7.5 3.1-7.5 7 0 2.5 1.2 4.2 2.5 5.4V18a1 1 0 0 0 1 1h.6v1.5a1 1 0 0 0 1 1h1v-1.5h2v1.5h1a1 1 0 0 0 1-1V19h.6a1 1 0 0 0 1-1v-2.6c1.3-1.2 2.5-2.9 2.5-5.4 0-3.9-3.1-7-7.5-7z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
       <circle cx="9" cy="10.5" r="1.4" fill="currentColor"/>
@@ -341,8 +358,11 @@
     <div class="subtitle">grow • hunt • survive</div>
 
     <div class="profile-row">
-      <div id="avatarPreview"><canvas id="avatarCanvas" width="40" height="40"></canvas></div>
-      <input id="usernameInput" type="text" maxlength="14" placeholder="Your name">
+      <div class="profile-id">
+        <div id="avatarPreview"><canvas id="avatarCanvas" width="40" height="40"></canvas></div>
+        <input id="usernameInput" type="text" maxlength="14" placeholder="Your name">
+      </div>
+      <button class="profile-account-btn" id="accountBtn" title="Sign in / create account"><svg class="icon"><use href="#icon-bag"/></svg><span>Guest</span></button>
     </div>
 
     <div class="currency-pill"><svg class="icon"><use href="#icon-shell"/></svg> <span id="currencyDisplay">0</span> Fishy Food</div>
@@ -358,6 +378,36 @@
     </div>
     <button class="btn btn-ghost" id="wheelBtn" style="margin-top:2px;"><svg class="icon"><use href="#icon-wheel"/></svg> Spin the Wheel</button>
     <button class="btn btn-ghost" id="achievementsBtn" style="margin-top:2px;"><svg class="icon"><use href="#icon-check"/></svg> Achievements</button>
+    <button class="btn btn-ghost" id="soundToggleBtn" style="margin-top:2px;"><svg class="icon"><use href="#icon-sound"/></svg> Sound: On</button>
+    <button class="btn btn-ghost" id="dashSideBtn" style="margin-top:2px;"><svg class="icon"><use href="#icon-dash"/></svg> Dash Button: Right</button>
+  </div>
+</div>
+
+<!-- ACCOUNT MENU -->
+<div class="overlay hidden" id="accountMenu">
+  <div class="panel" style="position:relative;">
+    <button class="close-x" id="closeAccountBtn"><svg class="icon"><use href="#icon-close"/></svg></button>
+    <div class="title" style="font-size:1.9em;">Account</div>
+    <div class="subtitle" id="accountSubtitle" style="margin-bottom:14px;">saved on this device</div>
+
+    <div id="accountLoggedOutView">
+      <input id="accountUsernameInput" type="text" maxlength="20" placeholder="Username" style="width:100%; margin-bottom:8px; padding:10px; border-radius:8px; border:1px solid rgba(210,232,240,0.2); background:rgba(0,0,0,0.2); color:#eaf4f7;">
+      <input id="accountPasswordInput" type="password" maxlength="40" placeholder="Password" style="width:100%; margin-bottom:10px; padding:10px; border-radius:8px; border:1px solid rgba(210,232,240,0.2); background:rgba(0,0,0,0.2); color:#eaf4f7;">
+      <div id="accountError" style="color:#d99a8a; font-size:0.82em; min-height:1.2em; margin-bottom:8px;"></div>
+      <button class="btn btn-primary" id="accountSignInBtn">Sign In</button>
+      <button class="btn btn-secondary" id="accountSignUpBtn">Create Account</button>
+      <div class="subtitle" style="margin-top:10px; font-size:0.68em;">Accounts are saved locally on this device/browser only — this does not sync across devices.</div>
+    </div>
+
+    <div id="accountLoggedInView" class="hidden">
+      <div class="quest-box" style="text-align:center;">
+        <div style="font-weight:700; margin-bottom:4px;">Signed in as</div>
+        <div id="accountCurrentName" style="font-size:1.2em; color:#a8d0c6; font-weight:700;"></div>
+      </div>
+      <button class="btn btn-danger" id="accountSignOutBtn" style="margin-top:14px;">Sign Out</button>
+    </div>
+
+    <button class="btn btn-ghost" id="backFromAccountBtn" style="margin-top:10px;"><svg class="icon"><use href="#icon-back"/></svg> Back to Menu</button>
   </div>
 </div>
 
@@ -477,15 +527,33 @@ const WHIRLPOOL_DRAIN_PER_SEC = 1;
 
 /* ============ SAVE DATA ============ */
 const SAVE_KEY = 'fishyio_save_v1';
-function loadSave(){
-  let s;
-  try { s = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch(e){ s = null; }
+const ACCOUNTS_KEY = 'fishyio_accounts_v1';
+const ACTIVE_ACCOUNT_KEY = 'fishyio_active_account_v1';
+
+function defaultSave(){
+  let s = {};
+  s.currency = 0;
+  s.ownedSkins = ['classic'];
+  s.activeSkin = 'classic';
+  s.username = 'Guest' + Math.floor(Math.random()*9000+1000);
+  s.questState = null;
+  s.totemsEatenRun = [];
+  s.megalodonDefeated = false;
+  s.bessieDefeated = false;
+  s.lifetime = { totalKills:0, totalCritters:0, totalFood:0, maxSize:0, gamesPlayed:0, totemsEaten:0, bossKills:0, dashesUsed:0 };
+  s.achievementsClaimed = [];
+  s.sfxOn = true;
+  s.dashSide = 'right';
+  return s;
+}
+function fillSaveDefaults(s){
   if(!s) s = {};
-  if(typeof s.currency !== 'number') s.currency = 0;
-  if(!Array.isArray(s.ownedSkins) || s.ownedSkins.length===0) s.ownedSkins = ['classic'];
-  if(!s.activeSkin) s.activeSkin = 'classic';
-  if(!s.username) s.username = 'Guest' + Math.floor(Math.random()*9000+1000);
-  if(!s.questState) s.questState = null; // {hourKey, questId, progress, completed}
+  const d = defaultSave();
+  if(typeof s.currency !== 'number') s.currency = d.currency;
+  if(!Array.isArray(s.ownedSkins) || s.ownedSkins.length===0) s.ownedSkins = d.ownedSkins;
+  if(!s.activeSkin) s.activeSkin = d.activeSkin;
+  if(!s.username) s.username = d.username;
+  if(!s.questState) s.questState = null;
   if(!Array.isArray(s.totemsEatenRun)) s.totemsEatenRun = [];
   if(typeof s.megalodonDefeated !== 'boolean') s.megalodonDefeated = false;
   if(typeof s.bessieDefeated !== 'boolean') s.bessieDefeated = false;
@@ -500,10 +568,97 @@ function loadSave(){
   if(typeof lt.bossKills !== 'number') lt.bossKills = 0;
   if(typeof lt.dashesUsed !== 'number') lt.dashesUsed = 0;
   if(!Array.isArray(s.achievementsClaimed)) s.achievementsClaimed = [];
+  if(typeof s.sfxOn !== 'boolean') s.sfxOn = true;
+  if(s.dashSide !== 'left' && s.dashSide !== 'right') s.dashSide = 'right';
   return s;
 }
+
+// --- Local "accounts" — a per-device sign-in so a named profile's progress
+// stays separate from other profiles on the same browser. This has no server:
+// it cannot sync across devices, only keep profiles apart on this one.
+function loadAccounts(){
+  try { return JSON.parse(localStorage.getItem(ACCOUNTS_KEY)) || {}; }
+  catch(e){ return {}; }
+}
+function saveAccounts(accts){
+  localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accts));
+}
+function simpleHash(str){
+  // NOT cryptographic security — this is a same-device profile lock, not a
+  // real auth system. Good enough to stop casual profile mix-ups, no more.
+  let h = 0;
+  for(let i=0;i<str.length;i++){ h = (h*31 + str.charCodeAt(i))|0; }
+  return h.toString(36);
+}
+function getActiveAccountName(){
+  return localStorage.getItem(ACTIVE_ACCOUNT_KEY) || null;
+}
+function setActiveAccountName(name){
+  if(name) localStorage.setItem(ACTIVE_ACCOUNT_KEY, name);
+  else localStorage.removeItem(ACTIVE_ACCOUNT_KEY);
+}
+
+function loadSave(){
+  const activeAccount = getActiveAccountName();
+  if(activeAccount){
+    const accts = loadAccounts();
+    const acct = accts[activeAccount];
+    if(acct){
+      return fillSaveDefaults(acct.data || {});
+    }
+  }
+  // guest / local-only save
+  let s;
+  try { s = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch(e){ s = null; }
+  return fillSaveDefaults(s || {});
+}
 let save = loadSave();
-function persist(){ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }
+function persist(){
+  const activeAccount = getActiveAccountName();
+  if(activeAccount){
+    const accts = loadAccounts();
+    if(!accts[activeAccount]) accts[activeAccount] = { passHash:null, data:{} };
+    accts[activeAccount].data = save;
+    saveAccounts(accts);
+  } else {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+  }
+}
+
+function signUp(username, password){
+  username = (username||'').trim().slice(0,20);
+  if(!username) return { ok:false, msg:'Enter a username.' };
+  if(!password) return { ok:false, msg:'Enter a password.' };
+  const accts = loadAccounts();
+  if(accts[username]) return { ok:false, msg:'That username is already taken on this device.' };
+  // Sign-up only happens while on the local guest profile (accountLoggedOutView),
+  // so carry that guest progress — skins, currency, achievements, stats, etc. —
+  // into the new account instead of starting it fresh.
+  const migrated = fillSaveDefaults(JSON.parse(JSON.stringify(save)));
+  migrated.username = username;
+  accts[username] = { passHash: simpleHash(password), data: migrated };
+  saveAccounts(accts);
+  setActiveAccountName(username);
+  save = migrated;
+  // The guest progress now lives on the account — reset the local guest slot
+  // so it doesn't sit around as a duplicate of what was just migrated.
+  localStorage.removeItem(SAVE_KEY);
+  return { ok:true };
+}
+function signIn(username, password){
+  username = (username||'').trim().slice(0,20);
+  const accts = loadAccounts();
+  const acct = accts[username];
+  if(!acct) return { ok:false, msg:'No account with that username on this device.' };
+  if(acct.passHash !== simpleHash(password||'')) return { ok:false, msg:'Wrong password.' };
+  setActiveAccountName(username);
+  save = fillSaveDefaults(acct.data || {});
+  return { ok:true };
+}
+function signOut(){
+  setActiveAccountName(null);
+  save = loadSave();
+}
 
 /* ============ ACHIEVEMENTS (a second way to earn Fishy Food) ============ */
 const ACHIEVEMENTS = [
@@ -536,6 +691,7 @@ function checkAchievements(){
       save.achievementsClaimed.push(a.id);
       save.currency += a.reward;
       showToast(`Achievement unlocked: ${a.label} (+${a.reward} Fishy Food)`);
+      SFX.achievement();
       changed = true;
     }
   }
@@ -919,11 +1075,12 @@ const SKINS = {
     }
   },
   obsidianDepths: {
-    name:'Obsidian Depths', price:300,
-    colors:['#0e0e14','#3a3a4a'],
+    name:'Obsidian Depths', price:550,
+    colors:['#0e0e14','#c93d3d'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
-      drawStripe(c,r,'#5c5c74',0.5);
+      drawHorns(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,'#5c5c74');
     }
   },
   pearlescent: {
@@ -1257,69 +1414,54 @@ const SKINS = {
     }
   },
   celestialKoi: {
-    name:'Celestial Koi', price:310,
-    colors:['#f2ede0','#2a2a2a'],
+    name:'Celestial Koi', price:560,
+    colors:['#1a2e1a','#d9524d'],
     draw(c,r,tail,colors){
       drawKoiFish(c,r,tail,'#f2ede0','#5c8fd9','#2a2a2a');
+      drawAngelWings(c,r,'#dceaff','#a3c4e8');
     }
   },
   phantomTide: {
-    name:'Phantom Tide', price:330,
-    colors:['#cfe0e6','#f5fbfc'],
+    name:'Phantom Tide', price:575,
+    colors:['#1a1a3d','#e05c5c'],
     draw(c,r,tail,colors){
       c.save();
       c.globalAlpha = 0.55;
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       c.restore();
+      drawAngelWings(c,r,'rgba(245,251,252,0.6)','rgba(255,255,255,0.4)');
     }
   },
   emberglass: {
-    name:'Emberglass', price:350,
-    colors:['#8f2f1f','#f0a23d'],
+    name:'Emberglass', price:590,
+    colors:['#2e1a0e','#e8895c'],
     draw(c,r,tail,colors){
       c.save();
       c.globalAlpha = 0.85;
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       c.restore();
       drawStripe(c,r,colors[1],0.5);
+      drawEmberTrail(c,r,tail,colors[1]);
+      drawHorns(c,r,colors[0]);
     }
   },
   krakenScale: {
-    name:'Kraken Scale', price:380,
-    colors:['#0f1f24','#3d6b6b'],
+    name:'Kraken Scale', price:610,
+    colors:['#0e2e2e','#d9524d'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.3,-0.2],[0.15,0.15],[-0.15,0.25],[0.25,-0.15]],0.06);
-      c.save();
-      c.fillStyle = colors[1];
-      for(let i=-1;i<=1;i++){
-        c.beginPath();
-        c.moveTo(i*r*0.2,-r*0.55);
-        c.lineTo(i*r*0.2+r*0.05,-r*1.0);
-        c.lineTo(i*r*0.2+r*0.12,-r*0.5);
-        c.closePath();
-        c.fill();
-      }
-      c.restore();
+      drawHorns(c,r,colors[1]);
     }
   },
   leviathan: {
-    name:'Leviathan', price:420,
-    colors:['#0c1a26','#e8d347'],
+    name:'Leviathan', price:650,
+    colors:['#3d3d3d','#c93d3d'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],'#3d5a6e');
       drawStripe(c,r,colors[1],0.5);
-      c.save();
-      c.fillStyle = colors[1];
-      for(let i=-1;i<=1;i++){
-        c.beginPath();
-        c.moveTo(i*r*0.24,-r*0.55);
-        c.lineTo(i*r*0.24+r*0.07,-r*1.15);
-        c.lineTo(i*r*0.24+r*0.16,-r*0.5);
-        c.closePath();
-        c.fill();
-      }
-      c.restore();
+      drawAngelWings(c,r,colors[1],'#fff3c2');
+      drawHorns(c,r,colors[1]);
     }
   },
   bessieHide: {
@@ -1541,29 +1683,23 @@ const SKINS = {
     }
   },
   astralCurrent: {
-    name:'Astral Current', price:320,
-    colors:['#1f1a3d','#8a7de0'],
+    name:'Astral Current', price:600,
+    colors:['#1a0e2e','#f2895c'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[1],'#d4c9ff');
+      drawSparkles(c,r,tail,'#d4c9ff',[[-0.1,0.3],[0.32,0.05]]);
     }
   },
   titanCurrent: {
-    name:'Titan Current', price:400,
-    colors:['#141f2e','#e8b93d'],
+    name:'Titan Current', price:700,
+    colors:['#0e1a2e','#e05c5c'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],'#3d5a6e');
       drawStripe(c,r,colors[1],0.5);
-      c.save();
-      c.fillStyle = colors[1];
-      for(let i=-1;i<=1;i++){
-        c.beginPath();
-        c.moveTo(i*r*0.24,-r*0.55);
-        c.lineTo(i*r*0.24+r*0.07,-r*1.1);
-        c.lineTo(i*r*0.24+r*0.16,-r*0.5);
-        c.closePath();
-        c.fill();
-      }
-      c.restore();
+      drawAngelWings(c,r,colors[1],'#fff3c2');
+      drawHorns(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
     }
   },
   mintwave: {
@@ -1858,67 +1994,2155 @@ const SKINS = {
     }
   },
   bloodtide: {
-    name:'Bloodtide', price:305,
-    colors:['#8a1f1f','#d94d4d'],
+    name:'Bloodtide', price:520,
+    colors:['#2e0e1a','#f0a23d'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
-      drawStripe(c,r,colors[1],0.45);
+      drawHorns(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
     }
   },
   crimsonAbyss: {
-    name:'Crimson Abyss', price:320,
-    colors:['#6b1414','#c93d3d'],
+    name:'Crimson Abyss', price:540,
+    colors:['#141414','#b52f2f'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+      drawAngelWings(c,r,'#3a0a0a','#8a1f1f');
     }
   },
   scarletCurrent: {
-    name:'Scarlet Current', price:340,
-    colors:['#991f1f','#e05c5c'],
+    name:'Scarlet Current', price:565,
+    colors:['#1a2e2e','#e8735c'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
+      drawHorns(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
     }
   },
   garnetFin: {
-    name:'Garnet Fin', price:360,
-    colors:['#731919','#c43d3d'],
+    name:'Garnet Fin', price:585,
+    colors:['#2e2e0e','#d9524d'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+      drawAngelWings(c,r,colors[0],colors[1]);
     }
   },
   rubyDepths: {
-    name:'Ruby Depths', price:380,
-    colors:['#8f1414','#d43d3d'],
+    name:'Ruby Depths', price:620,
+    colors:['#0e0e14','#c93d3d'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
-      drawStripe(c,r,colors[1],0.45);
+      drawStripe(c,r,colors[1],0.5);
+      drawAngelWings(c,r,'#4a0a0a','#d43d3d');
+      drawHorns(c,r,colors[1]);
     }
   },
   bloodmoon: {
-    name:'Bloodmoon', price:400,
-    colors:['#661010','#b52f2f'],
+    name:'Bloodmoon', price:660,
+    colors:['#1a2e1a','#d9524d'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+      drawHorns(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
     }
   },
   crimsonSovereign: {
-    name:'Crimson Sovereign', price:425,
-    colors:['#7a1a1a','#d94d4d'],
+    name:'Crimson Sovereign', price:720,
+    colors:['#1a1a3d','#e05c5c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+    }
+  },
+  bloodReaper: {
+    name:'Blood Reaper', price:780,
+    colors:['#2e1a0e','#e8895c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+      drawAngelWings(c,r,'#2a0606','#a32f2f');
+      drawHorns(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  cobbleReef: {
+    name:'Cobble Reef', price:44,
+    colors:['#7a8a8f','#b8c4c9'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  pebbleTide: {
+    name:'Pebble Tide', price:48,
+    colors:['#9e8a73','#dccbb0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
     }
   },
-  bloodReaper: {
-    name:'Blood Reaper', price:450,
-    colors:['#4a0e0e','#a32f2f'],
+  clayFin: {
+    name:'Clay Fin', price:52,
+    colors:['#a8724a','#dbb08a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  bogwater: {
+    name:'Bogwater', price:56,
+    colors:['#5c6b4a','#a3b38a'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  flintstream: {
+    name:'Flintstream', price:60,
+    colors:['#5c5c5c','#a3a3a3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  willowShoal: {
+    name:'Willow Shoal', price:64,
+    colors:['#6b8a5c','#b3d4a3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  sedgeReed: {
+    name:'Sedge Reed', price:68,
+    colors:['#8a9e5c','#cfe0a3'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  graniteCurrent: {
+    name:'Granite Current', price:72,
+    colors:['#6b6b73','#aaaab5'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  birchBank: {
+    name:'Birch Bank', price:77,
+    colors:['#c9c0a8','#f0ecdb'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  lowTide: {
+    name:'Low Tide', price:82,
+    colors:['#7a9e9e','#b8dbdb'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  duneReef2: {
+    name:'Dune Reef', price:87,
+    colors:['#c9a35c','#f0d69e'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  mistbank: {
+    name:'Mistbank', price:92,
+    colors:['#8f9ea3','#d4e0e3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  quietCove: {
+    name:'Quiet Cove', price:98,
+    colors:['#5c7a7a','#a3c4c4'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  pineShoal: {
+    name:'Pine Shoal', price:104,
+    colors:['#3d5c3d','#8ab38a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  softClay: {
+    name:'Soft Clay', price:110,
+    colors:['#b58a6b','#e0c4ab'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  driftpine: {
+    name:'Driftpine', price:116,
+    colors:['#4a5c4a','#8fad8f'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  hazyBank: {
+    name:'Hazy Bank', price:122,
+    colors:['#8a8f9e','#c9cfdb'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  slatewash: {
+    name:'Slatewash', price:128,
+    colors:['#5c656b','#a3adb3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  tanbark: {
+    name:'Tanbark', price:133,
+    colors:['#8f6b4a','#c9a883'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  paleReed: {
+    name:'Pale Reed', price:138,
+    colors:['#a3ad8a','#dbe0c4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  sunriseFin: {
+    name:'Sunrise Fin', price:144,
+    colors:['#d9a83d','#f2d68a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  golddust: {
+    name:'Golddust', price:150,
+    colors:['#c99a2f','#e8c273'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  amberFlare: {
+    name:'Amber Flare', price:156,
+    colors:['#d4913d','#f0c48a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  honeycomb: {
+    name:'Honeycomb', price:162,
+    colors:['#e0b03d','#f5dc9e'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  daffodilCurrent: {
+    name:'Daffodil Current', price:168,
+    colors:['#d9c93d','#f2e69e'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  sunspot: {
+    name:'Sunspot', price:174,
+    colors:['#dbb840','#f5e0a3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  goldenHaze: {
+    name:'Golden Haze', price:179,
+    colors:['#c9a23d','#e8cb7d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  brasstide: {
+    name:'Brasstide', price:184,
+    colors:['#b58a3d','#e0c283'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  citronScale: {
+    name:'Citron Scale', price:189,
+    colors:['#d4c23d','#f0e6a3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  sandGold: {
+    name:'Sand Gold', price:193,
+    colors:['#d9b354','#f2ddb0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  marigoldTide: {
+    name:'Marigold Tide', price:197,
+    colors:['#e0a83d','#f2d18a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  goldenCurrent: {
+    name:'Golden Current', price:201,
+    colors:['#c9a23d','#e8c96b'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  sunlitScale: {
+    name:'Sunlit Scale', price:205,
+    colors:['#dbb840','#f5e2a8'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  topazFlare: {
+    name:'Topaz Flare', price:208,
+    colors:['#c9a23d','#e8c96b'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  honeyGlow: {
+    name:'Honey Glow', price:211,
+    colors:['#d9a83d','#f2dca3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  goldStreamer: {
+    name:'Gold Streamer', price:214,
+    colors:['#e0c94d','#f7ecac'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  brightAmber: {
+    name:'Bright Amber', price:216,
+    colors:['#d4913d','#f0c48a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  gildedFin: {
+    name:'Gilded Fin', price:218,
+    colors:['#c9a23d','#e8c96b'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  daybreak: {
+    name:'Daybreak', price:219,
+    colors:['#d9b03d','#f5e0a3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  sunkissed: {
+    name:'Sunkissed', price:220,
+    colors:['#e0c04d','#f7e6ac'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  lavenderTide: {
+    name:'Lavender Tide', price:224,
+    colors:['#8a6bb5','#c4aee0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  violetCove: {
+    name:'Violet Cove', price:230,
+    colors:['#6b4a99','#ae8ac4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  purpleDusk: {
+    name:'Purple Dusk', price:236,
+    colors:['#5c3d8a','#9d7aad'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  irisFin: {
+    name:'Iris Fin', price:242,
+    colors:['#7a52a3','#c49ddb'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  mauveDepths: {
+    name:'Mauve Depths', price:248,
+    colors:['#6b4a7d','#ae8ac4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  grapeGlow: {
+    name:'Grape Glow', price:254,
+    colors:['#5c3373','#9d6bb5'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  plumTide: {
+    name:'Plum Tide', price:260,
+    colors:['#5c3a6b','#9d7aad'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  violetHaze: {
+    name:'Violet Haze', price:266,
+    colors:['#6b529e','#ae94d4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  orchidGlow: {
+    name:'Orchid Glow', price:272,
+    colors:['#7d4a9e','#c49ddb'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  wisteriaCurrent: {
+    name:'Wisteria Current', price:278,
+    colors:['#6b5299','#ae94d4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  amethystFlare: {
+    name:'Amethyst Flare', price:283,
+    colors:['#6b4a9e','#b39ddb'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  indigoTide: {
+    name:'Indigo Tide', price:288,
+    colors:['#4a3373','#8a6bb5'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  lilacFin: {
+    name:'Lilac Fin', price:292,
+    colors:['#7a5ca3','#c4aee0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  purpleReefII: {
+    name:'Purple Reef II', price:295,
+    colors:['#6b3d8a','#b38ad4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  violetSovereign: {
+    name:'Violet Sovereign', price:298,
+    colors:['#5c2f7a','#9d6bc4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  mysticGlow: {
+    name:'Mystic Glow', price:300,
+    colors:['#5c3d8f','#a389d4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  duskAmethyst: {
+    name:'Dusk Amethyst', price:305,
+    colors:['#6b4a9e','#b39ddb'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  nightOrchid: {
+    name:'Night Orchid', price:310,
+    colors:['#5c3373','#9d6bb5'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  royalTide: {
+    name:'Royal Tide', price:315,
+    colors:['#4a3373','#8a6bb5'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  violetSpecter: {
+    name:'Violet Specter', price:320,
+    colors:['#6b529e','#ae94d4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  seraphFin: {
+    name:'Seraph Fin', price:505,
+    colors:['#0e2e2e','#d9524d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+    }
+  },
+  infernoAngel: {
+    name:'Inferno Angel', price:515,
+    colors:['#3d3d3d','#c93d3d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+    }
+  },
+  bloodPhoenix: {
+    name:'Blood Phoenix', price:528,
+    colors:['#1a0e2e','#f2895c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  fallenSeraph: {
+    name:'Fallen Seraph', price:540,
+    colors:['#0e1a2e','#e05c5c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+    }
+  },
+  crimsonArchon: {
+    name:'Crimson Archon', price:555,
+    colors:['#2e0e1a','#f0a23d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+    }
+  },
+  demonTideII: {
+    name:'Demon Tide II', price:570,
+    colors:['#141414','#b52f2f'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+    }
+  },
+  gorgonScale: {
+    name:'Gorgon Scale', price:585,
+    colors:['#1a2e2e','#e8735c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  bansheeFin: {
+    name:'Banshee Fin', price:600,
+    colors:['#2e2e0e','#d9524d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  vampireCurrent: {
+    name:'Vampire Current', price:615,
+    colors:['#0e0e14','#c93d3d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+    }
+  },
+  hellfireKoi: {
+    name:'Hellfire Koi', price:630,
+    colors:['#1a2e1a','#d9524d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  reaperWing: {
+    name:'Reaper Wing', price:645,
+    colors:['#1a1a3d','#e05c5c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+    }
+  },
+  cardinalSovereign: {
+    name:'Cardinal Sovereign', price:660,
+    colors:['#2e1a0e','#e8895c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+    }
+  },
+  bloodSeraphim: {
+    name:'Blood Seraphim', price:680,
+    colors:['#0e2e2e','#d9524d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  scarletArchdemon: {
+    name:'Scarlet Archdemon', price:700,
+    colors:['#3d3d3d','#c93d3d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  emberSeraph: {
+    name:'Ember Seraph', price:720,
+    colors:['#1a0e2e','#f2895c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  bloodTitan: {
+    name:'Blood Titan', price:740,
+    colors:['#0e1a2e','#e05c5c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+    }
+  },
+  infernalKoi: {
+    name:'Infernal Koi', price:760,
+    colors:['#2e0e1a','#f0a23d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  crimsonPhoenix: {
+    name:'Crimson Phoenix', price:780,
+    colors:['#141414','#b52f2f'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  doombringer: {
+    name:'Doombringer', price:800,
+    colors:['#1a2e2e','#e8735c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  apexBloodwing: {
+    name:'Apex Bloodwing', price:850,
+    colors:['#2e2e0e','#d9524d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  coveMist: {
+    name:'Cove Mist', price:44,
+    colors:['#7a94a3','#c4d4dc'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  reedShade: {
+    name:'Reed Shade', price:50,
+    colors:['#5c7a5c','#a8c4a3'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  duneAsh: {
+    name:'Dune Ash', price:56,
+    colors:['#a89473','#e0d4b8'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  graniteFin: {
+    name:'Granite Fin', price:62,
+    colors:['#6b6b73','#a8a8b3'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  willowTide: {
+    name:'Willow Tide', price:68,
+    colors:['#6b8a5c','#b3d4a3'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  claybank: {
+    name:'Claybank', price:74,
+    colors:['#a3714a','#dcb894'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  fogbank: {
+    name:'Fogbank', price:80,
+    colors:['#8494a3','#d0dbe5'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  mireWater: {
+    name:'Mire Water', price:86,
+    colors:['#5c6b4a','#a3b38a'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  paleCurrent: {
+    name:'Pale Current', price:92,
+    colors:['#94a8ad','#d4e5e8'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  sandyRipple: {
+    name:'Sandy Ripple', price:98,
+    colors:['#c9ad7a','#f0e0bc'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  slatewashII: {
+    name:'Slatewash', price:104,
+    colors:['#5c6873','#a3b0bc'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  mossGlint: {
+    name:'Moss Glint', price:108,
+    colors:['#5c8a4a','#a8d494'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  duskbank: {
+    name:'Duskbank', price:112,
+    colors:['#5c5c73','#9d9db3'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  paleReedII: {
+    name:'Pale Reed', price:116,
+    colors:['#8a9e73','#d4e0bc'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  coppervein: {
+    name:'Coppervein', price:120,
+    colors:['#a86b3d','#dcb083'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  stonewash: {
+    name:'Stonewash', price:124,
+    colors:['#7a848a','#c4ccd0'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  brackishGlow: {
+    name:'Brackish Glow', price:128,
+    colors:['#6b7d5c','#a8c494'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  grayling: {
+    name:'Grayling', price:131,
+    colors:['#7a828a','#c4ccd2'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  duskyClaw: {
+    name:'Dusky Claw', price:134,
+    colors:['#6b5c52','#ad9a8a'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  mistyReef: {
+    name:'Misty Reef', price:137,
+    colors:['#7a94a8','#c9dce5'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  gildedTide: {
+    name:'Gilded Tide', price:141,
+    colors:['#c9a23d','#f0d98a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  sunlitScaleII: {
+    name:'Sunlit Scale', price:146,
+    colors:['#d9b03d','#f5e0a3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  brasswave: {
+    name:'Brasswave', price:151,
+    colors:['#b58a3d','#e0c383'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  honeycombII: {
+    name:'Honeycomb', price:156,
+    colors:['#d4a83d','#f2dc9a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  goldfinch: {
+    name:'Goldfinch', price:160,
+    colors:['#dbb840','#f5e2a8'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  daffodilTide: {
+    name:'Daffodil Tide', price:165,
+    colors:['#d9c93d','#f5eea3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  amberReef: {
+    name:'Amber Reef', price:170,
+    colors:['#c98a2f','#e8b85c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  goldstream: {
+    name:'Goldstream', price:176,
+    colors:['#e0c94d','#f7ecac'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  marigoldFin: {
+    name:'Marigold Fin', price:181,
+    colors:['#e0a83d','#f2d18a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  sunfishScale: {
+    name:'Sunfish Scale', price:186,
+    colors:['#d4b23d','#f0dc9a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  brasscurrent: {
+    name:'Brasscurrent', price:191,
+    colors:['#c9a23d','#e8c96b'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  citrineFin: {
+    name:'Citrine Fin', price:196,
+    colors:['#d4c23d','#f0e6a3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  honeyfin: {
+    name:'Honeyfin', price:200,
+    colors:['#c9a83d','#eed99c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  topazTide: {
+    name:'Topaz Tide', price:203,
+    colors:['#d9b53d','#f2dfa3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  goldwake: {
+    name:'Goldwake', price:206,
+    colors:['#dbb840','#f5e2a8'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  sunkissedII: {
+    name:'Sunkissed', price:209,
+    colors:['#e0c94d','#f7ecac'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  goldenPike: {
+    name:'Golden Pike', price:211,
+    colors:['#c9a23d','#5c6b4a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  imperialGold: {
+    name:'Imperial Gold', price:213,
+    colors:['#d4b23d','#3d3d4a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  gildedKoi: {
+    name:'Gilded Koi', price:215,
+    colors:['#f2ede0','#c9a23d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  sunspotFin: {
+    name:'Sunspot Fin', price:218,
+    colors:['#e0c94d','#8a6b2f'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  lavenderTideII: {
+    name:'Lavender Tide', price:224,
+    colors:['#8a6bb5','#d4c4ec'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  violetCascade: {
+    name:'Violet Cascade', price:232,
+    colors:['#6b4a9e','#b39ddb'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  mauveCurrent: {
+    name:'Mauve Current', price:240,
+    colors:['#7a5ca3','#c4aee0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  plumTideII: {
+    name:'Plum Tide', price:248,
+    colors:['#5c3a6b','#9d7aad'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  orchidFin: {
+    name:'Orchid Fin', price:256,
+    colors:['#7d4a9e','#c49ddb'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  grapeScale: {
+    name:'Grape Scale', price:264,
+    colors:['#5c3373','#9d6bb5'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  wisteriaFin: {
+    name:'Wisteria Fin', price:272,
+    colors:['#6b5299','#ae94d4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  indigoTideII: {
+    name:'Indigo Tide', price:280,
+    colors:['#4a3373','#8a6bb5'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  violetSpray: {
+    name:'Violet Spray', price:288,
+    colors:['#5c3d8f','#a389d4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  purpleCurrent: {
+    name:'Purple Current', price:296,
+    colors:['#6b3d8a','#b38ad4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  amethystShallows: {
+    name:'Amethyst Shallows', price:304,
+    colors:['#5c2f7a','#9d6bc4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  twilightViolet: {
+    name:'Twilight Violet', price:312,
+    colors:['#4a2f6b','#8f6bb5'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  lilacWave: {
+    name:'Lilac Wave', price:320,
+    colors:['#6b4a8a','#b39dcc'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  deepAmethyst: {
+    name:'Deep Amethyst', price:330,
+    colors:['#3d1f5c','#7a4a9e'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  mysticOrchid: {
+    name:'Mystic Orchid', price:345,
+    colors:['#5c3373','#a374d9'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  shadowViolet: {
+    name:'Shadow Violet', price:365,
+    colors:['#2f1a4a','#6b4a8a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  royalAmethyst: {
+    name:'Royal Amethyst', price:390,
+    colors:['#4a2f6b','#a374d9'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  duskViolet: {
+    name:'Dusk Violet', price:420,
+    colors:['#3d2352','#8a5cb5'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  spectralPurple: {
+    name:'Spectral Purple', price:455,
+    colors:['#2f1a3d','#9d6bd9'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  archAmethyst: {
+    name:'Arch Amethyst', price:490,
+    colors:['#3d1a52','#a374d9'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  wraithFin: {
+    name:'Wraith Fin', price:510,
+    colors:['#0e0e14','#c93d3d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+    }
+  },
+  gorgonWing: {
+    name:'Gorgon Wing', price:525,
+    colors:['#1a2e1a','#d9524d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+    }
+  },
+  nightmareSeraph: {
+    name:'Nightmare Seraph', price:540,
+    colors:['#1a1a3d','#e05c5c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  ashenDemon: {
+    name:'Ashen Demon', price:555,
+    colors:['#2e1a0e','#e8895c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  bloodWraith: {
+    name:'Blood Wraith', price:570,
+    colors:['#0e2e2e','#d9524d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  cinderAngel: {
+    name:'Cinder Angel', price:585,
+    colors:['#3d3d3d','#c93d3d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+    }
+  },
+  shadowSeraph: {
+    name:'Shadow Seraph', price:600,
+    colors:['#1a0e2e','#f2895c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+    }
+  },
+  duskDemon: {
+    name:'Dusk Demon', price:615,
+    colors:['#0e1a2e','#e05c5c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  emberArchon: {
+    name:'Ember Archon', price:630,
+    colors:['#2e0e1a','#f0a23d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  obsidianReaper: {
+    name:'Obsidian Reaper', price:645,
+    colors:['#141414','#b52f2f'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  hellwing: {
+    name:'Hellwing', price:660,
+    colors:['#1a2e2e','#e8735c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+    }
+  },
+  ravenSeraph: {
+    name:'Raven Seraph', price:675,
+    colors:['#2e2e0e','#d9524d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+    }
+  },
+  infernoWraith: {
+    name:'Inferno Wraith', price:700,
+    colors:['#0a0a12','#c93d3d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  bonewingDrake: {
+    name:'Bonewing Drake', price:725,
+    colors:['#1a3d2e','#e05c5c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  scarletDemonII: {
+    name:'Scarlet Demon II', price:750,
+    colors:['#3d1a1a','#f2895c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  nightSeraphim: {
+    name:'Night Seraphim', price:775,
+    colors:['#12121a','#d9524d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+    }
+  },
+  doomAngel: {
+    name:'Doom Angel', price:800,
+    colors:['#2e1a2e','#e8735c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+    }
+  },
+  wraithlord: {
+    name:'Wraithlord', price:830,
+    colors:['#1a2e3d','#c93d3d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  emberDemonLord: {
+    name:'Ember Demonlord', price:865,
+    colors:['#3d2e1a','#e05c5c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  bloodSovereignII: {
+    name:'Blood Sovereign II', price:900,
+    colors:['#0e2e1a','#f0a23d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  mossAgate: {
+    name:'Moss Agate', price:44,
+    colors:['#6b8f5c','#a8c48a'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  paleCoral: {
+    name:'Pale Coral', price:49,
+    colors:['#c98a8a','#f0c9c9'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  duskyClay: {
+    name:'Dusky Clay', price:54,
+    colors:['#a3735c','#d9ac94'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  seaglassGrey: {
+    name:'Seaglass Grey', price:59,
+    colors:['#7a9494','#c4d9d9'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  sandyOlive: {
+    name:'Sandy Olive', price:64,
+    colors:['#9e9e5c','#d4d49e'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  washedDenim: {
+    name:'Washed Denim', price:69,
+    colors:['#5c7a9e','#a3c4e0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  paleRust: {
+    name:'Pale Rust', price:74,
+    colors:['#b5714a','#e0a883'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  coveMint: {
+    name:'Cove Mint', price:79,
+    colors:['#5ca38a','#a8e0cc'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  shellPink: {
+    name:'Shell Pink', price:84,
+    colors:['#d9a3a3','#f5dcdc'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  driedKelp: {
+    name:'Dried Kelp', price:90,
+    colors:['#7a7a4a','#c4c48a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  paleCobalt: {
+    name:'Pale Cobalt', price:96,
+    colors:['#4a6b9e','#94b8e0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  muddyOlive: {
+    name:'Muddy Olive', price:103,
+    colors:['#6b6b3d','#a8a873'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  twilightGrey: {
+    name:'Twilight Grey', price:109,
+    colors:['#5c6b7a','#a3b3c4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  coralWashed: {
+    name:'Coral Washed', price:115,
+    colors:['#c98f7a','#f0d4c4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  sagebrush: {
+    name:'Sagebrush', price:120,
+    colors:['#7a9463','#c4e0a8'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  dovetail: {
+    name:'Dovetail', price:124,
+    colors:['#8a8a94','#dcdce0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  paleTerracotta: {
+    name:'Pale Terracotta', price:128,
+    colors:['#b5735c','#e0ac94'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  mistyJade: {
+    name:'Misty Jade', price:131,
+    colors:['#6b9e7a','#a8e0c4'],
+    draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
+  },
+  driftwoodGrey: {
+    name:'Driftwood Grey', price:134,
+    colors:['#7a7268','#c4bcb0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  paleAzure: {
+    name:'Pale Azure', price:137,
+    colors:['#6b94b5','#b3d9f0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  goldDapple: {
+    name:'Gold Dapple', price:141,
+    colors:['#d9b03d','#f5e0a3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  honeyshell: {
+    name:'Honeyshell', price:145,
+    colors:['#c9973d','#f0d090'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  amberFin: {
+    name:'Amber Fin', price:150,
+    colors:['#d4a23d','#f0d488'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  goldenTide: {
+    name:'Golden Tide', price:155,
+    colors:['#e0b53d','#f7e6a3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  sunwake: {
+    name:'Sunwake', price:160,
+    colors:['#d9c440','#f5edaa'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  brasswing: {
+    name:'Brasswing', price:165,
+    colors:['#c9a83d','#eeda94'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  goldcrest: {
+    name:'Goldcrest', price:170,
+    colors:['#e0c04d','#f7e8b3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  honeyReef: {
+    name:'Honey Reef', price:175,
+    colors:['#d9a83d','#f0d494'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  saffronFin: {
+    name:'Saffron Fin', price:180,
+    colors:['#e0a83d','#f2ce8a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  goldstreamII: {
+    name:'Goldstream II', price:184,
+    colors:['#d4b83d','#f0e0a0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  marigoldTideII: {
+    name:'Marigold Tide II', price:188,
+    colors:['#e0b03d','#f5dca0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  citrineGlow: {
+    name:'Citrine Glow', price:192,
+    colors:['#d9c93d','#f5eeaa'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  sunlitScaleIII: {
+    name:'Sunlit Scale III', price:196,
+    colors:['#e0c94d','#f7edb3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  goldenReefII: {
+    name:'Golden Reef II', price:199,
+    colors:['#c9a23d','#eed08a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  honeyglow: {
+    name:'Honeyglow', price:203,
+    colors:['#d9ad3d','#f2d998'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  goldwhisper: {
+    name:'Goldwhisper', price:206,
+    colors:['#e0b83d','#f5e2a0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  sunkissedIII: {
+    name:'Sunkissed III', price:209,
+    colors:['#d4a83d','#f0d494'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  daffodilTideII: {
+    name:'Daffodil Tide II', price:212,
+    colors:['#e0d13d','#f7f0a3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  goldenHorizon: {
+    name:'Golden Horizon', price:214,
+    colors:['#d9b83d','#f2e0a0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  amberglass: {
+    name:'Amberglass', price:215,
+    colors:['#c99a3d','#eecf8a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  violetShoal: {
+    name:'Violet Shoal', price:225,
+    colors:['#6b4a9e','#b39ddb'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  lavenderTideIII: {
+    name:'Lavender Tide III', price:240,
+    colors:['#7a5cb5','#c4aee8'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  plumCurrent: {
+    name:'Plum Current', price:260,
+    colors:['#5c3a8a','#9d7ac4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  mauveDepthsII: {
+    name:'Mauve Depths II', price:280,
+    colors:['#6b4a7d','#ae8ac4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  orchidGlowII: {
+    name:'Orchid Glow II', price:300,
+    colors:['#7d4aa3','#c49de0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  grapeTide: {
+    name:'Grape Tide', price:320,
+    colors:['#5c3373','#9d6bb5'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  wisteriaBloom: {
+    name:'Wisteria Bloom', price:340,
+    colors:['#6b52a3','#ae94e0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  indigoTideIII: {
+    name:'Indigo Tide III', price:360,
+    colors:['#4a3388','#8a6bc9'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  violetEmber: {
+    name:'Violet Ember', price:380,
+    colors:['#5c3d9e','#a389e0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  purpleShoal: {
+    name:'Purple Shoal', price:400,
+    colors:['#6b3d9e','#b38ae0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  amethystDeep: {
+    name:'Amethyst Deep', price:420,
+    colors:['#5c2f8a','#9d6be0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  twilightAmethyst: {
+    name:'Twilight Amethyst', price:440,
+    colors:['#4a2f73','#8a5cc4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  royalViolet: {
+    name:'Royal Violet', price:460,
+    colors:['#5c3d99','#a389e8'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  mysticLilac: {
+    name:'Mystic Lilac', price:480,
+    colors:['#6b4aad','#c4a3f0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawStripe(c,r,colors[1],0.45);
+    }
+  },
+  amethystSovereign: {
+    name:'Amethyst Sovereign', price:495,
+    colors:['#4a2f8a','#9970d9'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
+    }
+  },
+  crimsonHammerhead: {
+    name:'Crimson Hammerhead', price:510,
+    colors:['#7a1f1f','#d94d4d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      c.save(); c.fillStyle = colors[0];
+      c.beginPath(); c.ellipse(r*1.05,-r*0.08,r*0.55,r*0.16,0,0,Math.PI*2); c.fill();
+      c.restore();
+      drawSharkDorsal(c,r,colors[0]);
+    }
+  },
+  bloodEel: {
+    name:'Blood Eel', price:530,
+    colors:['#5c1414','#c93d3d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawTentacles(c,r,tail,colors[1]);
+    }
+  },
+  scarletDragonfin: {
+    name:'Scarlet Dragonfin', price:550,
+    colors:['#8a1f1f','#e05c5c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+      drawSharkDorsal(c,r,colors[1]);
+    }
+  },
+  garnetHammerhead: {
+    name:'Garnet Hammerhead', price:570,
+    colors:['#731919','#c43d3d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      c.save(); c.fillStyle = colors[1];
+      c.beginPath(); c.ellipse(r*1.05,-r*0.08,r*0.5,r*0.15,0,0,Math.PI*2); c.fill();
+      c.restore();
+    }
+  },
+  rubyBarracuda: {
+    name:'Ruby Barracuda', price:590,
+    colors:['#8f1414','#e0504d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawSwordBill(c,r,colors[0]);
+    }
+  },
+  crimsonWyrm: {
+    name:'Crimson Wyrm', price:610,
+    colors:['#6b1010','#b52f2f'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawHorns(c,r,colors[0]);
+      drawTentacles(c,r,tail,colors[0]);
+    }
+  },
+  bloodShark: {
+    name:'Blood Shark', price:630,
+    colors:['#7a1a1a','#d94d4d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawSharkDorsal(c,r,colors[0]);
+      c.save(); c.fillStyle = '#f0f0f0';
+      for(let i=0;i<4;i++){ c.beginPath(); c.moveTo(r*0.7+i*r*0.08,r*0.18); c.lineTo(r*0.75+i*r*0.08,r*0.32); c.lineTo(r*0.65+i*r*0.08,r*0.32); c.closePath(); c.fill(); }
+      c.restore();
+    }
+  },
+  mahoganyMarlin: {
+    name:'Mahogany Marlin', price:650,
+    colors:['#5c1414','#a33030'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawSwordBill(c,r,colors[1]);
+      drawSharkDorsal(c,r,colors[1]);
+    }
+  },
+  vermilionKraken: {
+    name:'Vermilion Kraken', price:670,
+    colors:['#731919','#d4504d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawTentacles(c,r,tail,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  infernalHammerhead: {
+    name:'Infernal Hammerhead', price:690,
+    colors:['#661010','#c43d3d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      c.save(); c.fillStyle = colors[0];
+      c.beginPath(); c.ellipse(r*1.05,-r*0.08,r*0.58,r*0.17,0,0,Math.PI*2); c.fill();
+      c.restore();
+      drawHorns(c,r,colors[1]);
+    }
+  },
+  bloodreaverFin: {
+    name:'Bloodreaver Fin', price:705,
+    colors:['#5c1414','#a83030'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawSharkDorsal(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  carnelianSerpent: {
+    name:'Carnelian Serpent', price:715,
+    colors:['#731c1c','#d45c4d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawTentacles(c,r,tail,colors[0]);
+      drawHorns(c,r,colors[0]);
+    }
+  },
+  rustbladeShark: {
+    name:'Rustblade Shark', price:725,
+    colors:['#7a1f14','#c9503d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawSharkDorsal(c,r,colors[0]);
+      drawSwordBill(c,r,colors[1]);
+    }
+  },
+  crimsonLeviathan: {
+    name:'Crimson Leviathan', price:735,
+    colors:['#5c1010','#b52f2f'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+      drawSharkDorsal(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  bloodforgedMarlin: {
+    name:'Bloodforged Marlin', price:745,
+    colors:['#661414','#d4504d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawSwordBill(c,r,colors[0]);
+      drawTentacles(c,r,tail,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  emeraldHammerhead: {
+    name:'Emerald Hammerhead', price:755,
+    colors:['#1f5c3d','#3ddb7a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      c.save(); c.fillStyle = colors[0];
+      c.beginPath(); c.ellipse(r*1.05,-r*0.08,r*0.56,r*0.16,0,0,Math.PI*2); c.fill();
+      c.restore();
+      drawSharkDorsal(c,r,colors[0]);
+    }
+  },
+  jadeMarlin: {
+    name:'Jade Marlin', price:775,
+    colors:['#194d33','#4de08f'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawSwordBill(c,r,colors[0]);
+      drawSharkDorsal(c,r,colors[1]);
+    }
+  },
+  viperfishGreen: {
+    name:'Viperfish Green', price:795,
+    colors:['#0f3d26','#33c46b'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      c.save(); c.fillStyle = '#eafff2';
+      for(let i=0;i<3;i++){ c.beginPath(); c.moveTo(r*0.6+i*r*0.1,r*0.16); c.lineTo(r*0.65+i*r*0.1,r*0.28); c.lineTo(r*0.55+i*r*0.1,r*0.28); c.closePath(); c.fill(); }
+      c.restore();
+    }
+  },
+  emeraldSwordfish: {
+    name:'Emerald Swordfish', price:815,
+    colors:['#144d33','#3ddb8a'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawSwordBill(c,r,colors[1]);
+    }
+  },
+  gatorpikeGreen: {
+    name:'Gatorpike Green', price:835,
+    colors:['#1f4d26','#5cc466'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.3,-0.15],[0.15,0.15],[-0.1,-0.28]],0.06);
+      drawSharkDorsal(c,r,colors[0]);
+    }
+  },
+  jadeReefShark: {
+    name:'Jade Reef Shark', price:855,
+    colors:['#194033','#3dc499'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawSharkDorsal(c,r,colors[1]);
+      c.save(); c.fillStyle='#f0fff7';
+      for(let i=0;i<4;i++){ c.beginPath(); c.moveTo(r*0.7+i*r*0.08,r*0.18); c.lineTo(r*0.75+i*r*0.08,r*0.32); c.lineTo(r*0.65+i*r*0.08,r*0.32); c.closePath(); c.fill(); }
+      c.restore();
+    }
+  },
+  serpentineEmerald: {
+    name:'Serpentine Emerald', price:875,
+    colors:['#0f3326','#33dba3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawTentacles(c,r,tail,colors[1]);
+    }
+  },
+  malachiteHammerhead: {
+    name:'Malachite Hammerhead', price:895,
+    colors:['#194d2f','#3dc477'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      c.save(); c.fillStyle = colors[1];
+      c.beginPath(); c.ellipse(r*1.05,-r*0.08,r*0.58,r*0.17,0,0,Math.PI*2); c.fill();
+      c.restore();
+    }
+  },
+  emeraldBarracuda: {
+    name:'Emerald Barracuda', price:910,
+    colors:['#164033','#3dd499'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawSwordBill(c,r,colors[0]);
+      drawSharkDorsal(c,r,colors[0]);
+    }
+  },
+  junglePike: {
+    name:'Jungle Pike', price:925,
+    colors:['#1f4020','#5cbf5c'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawDots(c,r,colors[1],[[-0.3,-0.1],[0.15,0.2],[-0.1,-0.3],[0.25,-0.1]],0.05);
+    }
+  },
+  emeraldKraken: {
+    name:'Emerald Kraken', price:940,
+    colors:['#0f3d33','#33c4a3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawTentacles(c,r,tail,colors[1]);
+      drawSharkDorsal(c,r,colors[0]);
+    }
+  },
+  jadefinPredator: {
+    name:'Jadefin Predator', price:955,
+    colors:['#194933','#3ddba3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawSharkDorsal(c,r,colors[1]);
+      drawSwordBill(c,r,colors[0]);
+    }
+  },
+  viridianMako: {
+    name:'Viridian Mako', price:965,
+    colors:['#123326','#3dc48f'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawSharkDorsal(c,r,colors[0]);
+      drawDots(c,r,colors[1],[[-0.2,-0.2],[0.2,0.15]],0.05);
+    }
+  },
+  emperorEmeraldShark: {
+    name:'Emperor Emerald Shark', price:980,
+    colors:['#0f4030','#3ddba0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawSharkDorsal(c,r,colors[1]);
+      drawSwordBill(c,r,colors[1]);
+      c.save(); c.fillStyle='#f0fff7';
+      for(let i=0;i<3;i++){ c.beginPath(); c.moveTo(r*0.6+i*r*0.1,r*0.16); c.lineTo(r*0.65+i*r*0.1,r*0.28); c.lineTo(r*0.55+i*r*0.1,r*0.28); c.closePath(); c.fill(); }
+      c.restore();
+    }
+  },
+  emeraldTitan: {
+    name:'Emerald Titan', price:995,
+    colors:['#0a3326','#3ddb99'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawSharkDorsal(c,r,colors[1]);
+      drawSwordBill(c,r,colors[0]);
+      drawTentacles(c,r,tail,colors[1]);
+    }
+  },
+  seraphFinPrime: {
+    name:'Seraph Fin Prime', price:1010,
+    colors:['#f0f0f5','#ffd9a3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,'#ffffff',colors[1]);
+      drawHalo(c,r,'#ffe9a3');
+    }
+  },
+  duskDemonFin: {
+    name:'Dusk Demon Fin', price:1040,
+    colors:['#2a0f14','#e0504d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  celestialBloop: {
+    name:'Celestial Bloop', price:1070,
+    colors:['#2a1a4a','#a389e0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawTentacles(c,r,tail,colors[1]);
+      drawHalo(c,r,'#dcc9ff');
+    }
+  },
+  voidLeviathanPrime: {
+    name:'Void Leviathan Prime', price:1100,
+    colors:['#0a0a14','#8a6fd9'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+      drawTentacles(c,r,tail,colors[1]);
+    }
+  },
+  archangelKoi: {
+    name:'Archangel Koi', price:1130,
+    colors:['#f5f0e0','#5c8fd9'],
+    draw(c,r,tail,colors){
+      drawKoiFish(c,r,tail,colors[0],'#e8b93d','#2a2a2a');
+      drawAngelWings(c,r,'#ffffff',colors[1]);
+      drawHalo(c,r,'#cfe0ff');
+    }
+  },
+  infernalSovereign: {
+    name:'Infernal Sovereign', price:1160,
+    colors:['#1a0a0a','#e05c3d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+      drawSharkDorsal(c,r,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  mythicKraken: {
+    name:'Mythic Kraken', price:1190,
+    colors:['#0f1a33','#4dd9c4'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawTentacles(c,r,tail,colors[1]);
+      drawSwordBill(c,r,colors[1]);
+    }
+  },
+  prismaticSeraph: {
+    name:'Prismatic Seraph', price:1220,
+    colors:['#ffffff','#ffd9f0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,'#f5e0ff',colors[1]);
+      drawHalo(c,r,'#ffd9f5');
+    }
+  },
+  shadowfangDemon: {
+    name:'Shadowfang Demon', price:1250,
+    colors:['#140a0a','#c9403d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+      drawSharkDorsal(c,r,colors[0]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  oceanicDeity: {
+    name:'Oceanic Deity', price:1280,
+    colors:['#0a2a4a','#5cc4ff'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawAngelWings(c,r,colors[1],'#ffffff');
+      drawHalo(c,r,'#bfe8ff');
+      drawSwordBill(c,r,colors[1]);
+    }
+  },
+  bloopGodling: {
+    name:'Bloop Godling', price:1310,
+    colors:['#2a1a3d','#d97fe0'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawTentacles(c,r,tail,colors[1]);
+      drawSparkles(c,r,tail,colors[1],[[-0.3,-0.2],[0.2,0.15],[-0.1,0.3]]);
+    }
+  },
+  cherubicKoi: {
+    name:'Cherubic Koi', price:1340,
+    colors:['#fff5e0','#ffb3d9'],
+    draw(c,r,tail,colors){
+      drawKoiFish(c,r,tail,colors[0],'#ff8fb3','#2a2a2a');
+      drawAngelWings(c,r,'#ffe0ee',colors[1]);
+      drawHalo(c,r,'#ffd9ee');
+    }
+  },
+  abyssalArchdemon: {
+    name:'Abyssal Archdemon', price:1370,
+    colors:['#0a0505','#d94d3d'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+      drawTentacles(c,r,tail,colors[1]);
+      drawEmberTrail(c,r,tail,colors[1]);
+    }
+  },
+  starlightWyrm: {
+    name:'Starlight Wyrm', price:1420,
+    colors:['#0a1a3d','#a3c9ff'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawHorns(c,r,colors[1]);
+      drawAngelWings(c,r,colors[1],'#ffffff');
+      drawSparkles(c,r,tail,'#ffffff',[[-0.3,-0.2],[0.2,0.15],[-0.1,0.3],[0.3,-0.1]]);
+    }
+  },
+  theFallenAndTheRisen: {
+    name:'The Fallen and the Risen', price:1500,
+    colors:['#0a0a0a','#ffd9a3'],
+    draw(c,r,tail,colors){
+      drawBasicFish(c,r,tail,colors[0],colors[1]);
+      drawHorns(c,r,'#c9403d');
+      drawAngelWings(c,r,'#ffffff',colors[1]);
+      drawHalo(c,r,'#ffe9a3');
+      drawEmberTrail(c,r,tail,'#c9403d');
     }
   },
 };
@@ -2024,6 +4248,122 @@ function drawStripe(c, r, color, atX){
   c.restore();
 }
 
+// A pair of feathered angel wings sweeping back from the shoulders — the
+// signature flourish for the flashiest Blood-tier skins.
+function drawAngelWings(c, r, color, accent){
+  c.save();
+  for(const side of [-1,1]){
+    c.save();
+    c.scale(1, side);
+    c.fillStyle = color;
+    c.beginPath();
+    c.moveTo(-r*0.15, -r*0.1);
+    c.quadraticCurveTo(-r*0.7, -r*0.35, -r*1.35, -r*0.15);
+    c.quadraticCurveTo(-r*0.95, -r*0.05, -r*1.1, r*0.12);
+    c.quadraticCurveTo(-r*0.65, r*0.02, -r*0.3, r*0.15);
+    c.closePath();
+    c.fill();
+    c.fillStyle = accent;
+    for(let i=0;i<3;i++){
+      c.beginPath();
+      const fx = -r*0.4 - i*r*0.28, fy = -r*0.12 - i*r*0.02;
+      c.moveTo(fx, fy);
+      c.quadraticCurveTo(fx-r*0.18, fy-r*0.05, fx-r*0.32, fy+r*0.05);
+      c.quadraticCurveTo(fx-r*0.15, fy+r*0.07, fx, fy+r*0.1);
+      c.closePath();
+      c.fill();
+    }
+    c.restore();
+  }
+  c.restore();
+}
+
+// Jagged devil-style horns above the head.
+function drawHorns(c, r, color){
+  c.save();
+  c.fillStyle = color;
+  for(const s of [-1,1]){
+    c.beginPath();
+    c.moveTo(s*r*0.15, -r*0.5);
+    c.quadraticCurveTo(s*r*0.35, -r*0.85, s*r*0.22, -r*1.05);
+    c.quadraticCurveTo(s*r*0.28, -r*0.75, s*r*0.05, -r*0.5);
+    c.closePath();
+    c.fill();
+  }
+  c.restore();
+}
+
+// A trailing wisp of embers behind the tail.
+function drawEmberTrail(c, r, tailPhase, color){
+  c.save();
+  c.fillStyle = color;
+  for(let i=0;i<4;i++){
+    const t = tailPhase*1.5 + i*1.3;
+    const ex = -r*1.1 - i*r*0.22;
+    const ey = Math.sin(t)*r*0.12;
+    const s = r*(0.06 - i*0.008);
+    c.globalAlpha = 0.7 - i*0.15;
+    c.beginPath();
+    c.arc(ex, ey, Math.max(1,s), 0, Math.PI*2);
+    c.fill();
+  }
+  c.restore();
+}
+
+// A glowing ring floating above the head — halo for angel/divine-themed skins.
+function drawHalo(c, r, color){
+  c.save();
+  c.strokeStyle = color;
+  c.lineWidth = Math.max(1, r*0.07);
+  c.globalAlpha = 0.85;
+  c.beginPath();
+  c.ellipse(r*0.15, -r*1.05, r*0.34, r*0.12, 0, 0, Math.PI*2);
+  c.stroke();
+  c.restore();
+}
+
+// A long pointed bill extending forward, swordfish/marlin style.
+function drawSwordBill(c, r, color){
+  c.save();
+  c.fillStyle = color;
+  c.beginPath();
+  c.moveTo(r*0.85, -r*0.1);
+  c.lineTo(r*1.7, -r*0.03);
+  c.lineTo(r*0.85, r*0.08);
+  c.closePath();
+  c.fill();
+  c.restore();
+}
+
+// Tall shark-style dorsal fin.
+function drawSharkDorsal(c, r, color){
+  c.save();
+  c.fillStyle = color;
+  c.beginPath();
+  c.moveTo(-r*0.08,-r*0.5);
+  c.lineTo(r*0.14,-r*1.25);
+  c.lineTo(r*0.38,-r*0.45);
+  c.closePath();
+  c.fill();
+  c.restore();
+}
+
+// Small trailing tentacle wisps — for mythical / deep-sea creature skins.
+function drawTentacles(c, r, tailPhase, color){
+  c.save();
+  c.strokeStyle = color;
+  c.lineCap = 'round';
+  for(let i=-1;i<=1;i++){
+    const sway = Math.sin(tailPhase*1.4 + i)*r*0.14;
+    c.lineWidth = Math.max(1, r*0.08);
+    c.beginPath();
+    c.moveTo(i*r*0.22, r*0.5);
+    c.quadraticCurveTo(i*r*0.22+sway, r*0.95, i*r*0.22+sway*1.3, r*1.35);
+    c.stroke();
+  }
+  c.restore();
+}
+
 // Small twinkling diamond sparkles — used to make higher-tier skins pop.
 function drawSparkles(c, r, tailPhase, color, positions){
   c.save();
@@ -2057,11 +4397,13 @@ function drawGlowRing(c, r, color){
 /* ============ RARITY SYSTEM ============ */
 // Plain has no glow at all. Above that, rarity is what drives the glow/sparkle
 // color — and price scales with rarity, not the other way around.
-const RARITY_ORDER = ['plain','golden','amethyst','blood','exclusive'];
+const RARITY_ORDER = ['plain','golden','amethyst','blood','emerald','super','exclusive'];
 const RARITY_GLOW_COLOR = {
   golden: '#e8c94d',
   amethyst: '#a374d9',
   blood: '#d9524d',
+  emerald: '#3ddb7a',
+  super: '#ff6ec7',
   exclusive: '#1a1a1a'
 };
 const RARITY_LABEL = {
@@ -2069,12 +4411,16 @@ const RARITY_LABEL = {
   golden: 'Golden',
   amethyst: 'Amethyst',
   blood: 'Blood',
+  emerald: 'Emerald',
+  super: 'Super',
   exclusive: 'Exclusive'
 };
 function rarityOf(skin){
   if(skin.rarity) return skin.rarity;
   if(skin.exclusive) return 'exclusive';
-  if(skin.price >= 300) return 'blood';
+  if(skin.price >= 1000) return 'super';
+  if(skin.price >= 750) return 'emerald';
+  if(skin.price >= 500) return 'blood';
   if(skin.price >= 220) return 'amethyst';
   if(skin.price >= 140) return 'golden';
   return 'plain';
@@ -2095,6 +4441,14 @@ function applyRarityFX(c, r, tailPhase, rarity){
     c.restore();
     drawGlowRing(c, r, '#050505');
     drawSparkles(c, r, tailPhase, '#1a1a1a', [[-0.3,-0.15],[0.15,0.18],[-0.5,0.1]]);
+    return;
+  }
+  if(rarity === 'super'){
+    // rainbow-cycling glow + sparkles instead of one fixed color
+    const hue = (tailPhase*40) % 360;
+    const color = `hsl(${hue},85%,65%)`;
+    drawGlowRing(c, r, color);
+    drawSparkles(c, r, tailPhase, `hsl(${(hue+120)%360},85%,70%)`, [[-0.3,-0.15],[0.15,0.18],[-0.5,0.1]]);
     return;
   }
   const color = RARITY_GLOW_COLOR[rarity];
@@ -2272,6 +4626,7 @@ function progressQuest(type, amount){
       qs.completed = true;
       save.currency += questRewardFor(def);
       showToast(`<svg class="icon"><use href="#icon-check"/></svg> Quest Complete! +${questRewardFor(def)} <svg class="icon"><use href="#icon-shell"/></svg>`);
+      SFX.questComplete();
       updateCurrencyDisplays();
     }
     changed = true;
@@ -2289,6 +4644,7 @@ function setQuestProgressAbsolute(type, value){
       qs.completed = true;
       save.currency += questRewardFor(def);
       showToast(`<svg class="icon"><use href="#icon-check"/></svg> Quest Complete! +${questRewardFor(def)} <svg class="icon"><use href="#icon-shell"/></svg>`);
+      SFX.questComplete();
       updateCurrencyDisplays();
     }
     changed = true;
@@ -2304,6 +4660,72 @@ function showToast(msg){
   clearTimeout(toastTimer);
   toastTimer = setTimeout(()=>t.classList.remove('show'), 2600);
 }
+
+/* ============ SOUND EFFECTS ============ */
+// Small synthesized WebAudio SFX engine — no audio files needed. Lazily created
+// on first user interaction (browsers block audio contexts until then).
+let audioCtx = null;
+function getAudioCtx(){
+  if(!audioCtx){
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch(e){ return null; }
+  }
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function sfxEnabled(){ return save.sfxOn !== false; }
+
+function playTone(freq, durationMs, type, gainStart, glideTo){
+  if(!sfxEnabled()) return;
+  const ac = getAudioCtx();
+  if(!ac) return;
+  const osc = ac.createOscillator();
+  const gain = ac.createGain();
+  osc.type = type || 'sine';
+  osc.frequency.setValueAtTime(freq, ac.currentTime);
+  if(glideTo) osc.frequency.exponentialRampToValueAtTime(Math.max(1,glideTo), ac.currentTime + durationMs/1000);
+  gain.gain.setValueAtTime(gainStart||0.15, ac.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + durationMs/1000);
+  osc.connect(gain); gain.connect(ac.destination);
+  osc.start();
+  osc.stop(ac.currentTime + durationMs/1000);
+}
+function playNoise(durationMs, gainStart){
+  if(!sfxEnabled()) return;
+  const ac = getAudioCtx();
+  if(!ac) return;
+  const bufferSize = Math.floor(ac.sampleRate * durationMs/1000);
+  const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
+  const data = buffer.getChannelData(0);
+  for(let i=0;i<bufferSize;i++) data[i] = (Math.random()*2-1) * (1 - i/bufferSize);
+  const src = ac.createBufferSource();
+  src.buffer = buffer;
+  const gain = ac.createGain();
+  gain.gain.setValueAtTime(gainStart||0.12, ac.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + durationMs/1000);
+  src.connect(gain); gain.connect(ac.destination);
+  src.start();
+}
+const SFX = {
+  eatFood: ()=> playTone(520, 70, 'sine', 0.08, 780),
+  eatCritter: ()=> playTone(420, 130, 'triangle', 0.12, 680),
+  eatFish: ()=>{ playTone(220, 160, 'sawtooth', 0.14, 90); playTone(140, 200, 'sine', 0.1, 60); },
+  eatenByBoss: ()=>{ playNoise(300, 0.2); playTone(90, 400, 'sawtooth', 0.18, 40); },
+  dash: ()=> playTone(300, 140, 'sine', 0.1, 640),
+  totem: ()=> playTone(660, 220, 'triangle', 0.14, 990),
+  bossSpawn: ()=>{ playTone(80, 700, 'sawtooth', 0.16, 55); playNoise(500, 0.1); },
+  bossDefeat: ()=>{ playTone(440, 200, 'triangle', 0.15, 880); setTimeout(()=>playTone(660,300,'triangle',0.15,990),150); },
+  bossStunned: ()=> playTone(880, 250, 'square', 0.1, 440),
+  attackWarn: ()=> playTone(200, 180, 'square', 0.12, 160),
+  questComplete: ()=>{ playTone(523, 120, 'triangle', 0.13, 659); setTimeout(()=>playTone(659,160,'triangle',0.13,784),110); },
+  achievement: ()=>{ playTone(392,120,'triangle',0.13,523); setTimeout(()=>playTone(523,120,'triangle',0.13,659),100); setTimeout(()=>playTone(659,220,'triangle',0.14,880),200); },
+  purchase: ()=> playTone(360, 110, 'sine', 0.1, 520),
+  equip: ()=> playTone(500, 90, 'sine', 0.09, 640),
+  wheelSpin: ()=> playTone(180, 900, 'sine', 0.06, 60),
+  wheelWin: ()=>{ playTone(523,120,'triangle',0.14,659); setTimeout(()=>playTone(784,220,'triangle',0.14,1047),110); },
+  gameOver: ()=>{ playTone(220, 220, 'sawtooth', 0.15, 110); setTimeout(()=>playTone(150,350,'sawtooth',0.15,70),160); },
+  click: ()=> playTone(700, 40, 'sine', 0.05, 700)
+};
 
 /* ============ UI ELEMENTS ============ */
 const mainMenu = document.getElementById('mainMenu');
@@ -2379,7 +4801,7 @@ function renderShop(){
 
     card.addEventListener('click', ()=>{
       if(owned){
-        if(!equipped){ save.activeSkin = key; persist(); renderShop(); renderAvatar(); }
+        if(!equipped){ save.activeSkin = key; persist(); renderShop(); renderAvatar(); SFX.equip(); }
       } else {
         if(save.currency >= skin.price){
           save.currency -= skin.price;
@@ -2390,6 +4812,7 @@ function renderShop(){
           renderShop();
           renderAvatar();
           showToast(`Unlocked ${skin.name}!`);
+          SFX.purchase();
         } else {
           showToast(`Not enough Fishy Food <svg class="icon"><use href="#icon-shell"/></svg>`);
         }
@@ -2458,7 +4881,7 @@ function renderInventory(){
     card.appendChild(status);
 
     card.addEventListener('click', ()=>{
-      if(!equipped){ save.activeSkin = key; persist(); renderInventory(); renderAvatar(); }
+      if(!equipped){ save.activeSkin = key; persist(); renderInventory(); renderAvatar(); SFX.equip(); }
     });
 
     grid.appendChild(card);
@@ -2575,6 +4998,7 @@ function spinWheel(){
   const target = wheelRotation + 5*360 + delta;
   wheelRotation = target;
   wheelCanvas.style.transform = `rotate(${target}deg)`;
+  SFX.wheelSpin();
 
   setTimeout(()=>{
     wheelSpinning = false;
@@ -2585,9 +5009,11 @@ function spinWheel(){
       save.currency += seg.amount;
       updateCurrencyDisplays();
       resultMsg = `You won +${seg.amount} Fishy Food!`;
+      SFX.wheelWin();
     } else if(seg.type === 'skin'){
       if(!save.ownedSkins.includes(seg.skinKey)) save.ownedSkins.push(seg.skinKey);
       resultMsg = `You won the exclusive ${seg.label} skin!`;
+      SFX.wheelWin();
     } else {
       resultMsg = 'Nothing this time — try again tomorrow!';
     }
@@ -2627,6 +5053,112 @@ function closeAchievements(){
   mainMenu.classList.remove('hidden');
   updateQuestMenuUI();
 }
+
+/* ============ SOUND TOGGLE ============ */
+function updateSoundBtn(){
+  const btn = document.getElementById('soundToggleBtn');
+  btn.innerHTML = save.sfxOn
+    ? '<svg class="icon"><use href="#icon-sound"/></svg> Sound: On'
+    : '<svg class="icon"><use href="#icon-mute"/></svg> Sound: Off';
+}
+document.getElementById('soundToggleBtn').addEventListener('click', ()=>{
+  save.sfxOn = !save.sfxOn;
+  persist();
+  updateSoundBtn();
+  if(save.sfxOn) SFX.click();
+});
+updateSoundBtn();
+
+/* ============ DASH BUTTON SIDE (touch controls) ============ */
+function updateDashSideBtn(){
+  const btn = document.getElementById('dashSideBtn');
+  btn.innerHTML = `<svg class="icon"><use href="#icon-dash"/></svg> Dash Button: ${save.dashSide === 'left' ? 'Left' : 'Right'}`;
+  positionDashBtn();
+}
+function positionDashBtn(){
+  const btn = document.getElementById('dashBtn');
+  btn.classList.toggle('side-left', save.dashSide === 'left');
+  btn.classList.toggle('side-right', save.dashSide !== 'left');
+}
+document.getElementById('dashSideBtn').addEventListener('click', ()=>{
+  save.dashSide = save.dashSide === 'left' ? 'right' : 'left';
+  persist();
+  updateDashSideBtn();
+  SFX.click();
+});
+updateDashSideBtn();
+
+/* ============ ACCOUNT / SIGN IN ============ */
+const accountMenu = document.getElementById('accountMenu');
+const accountBtn = document.getElementById('accountBtn');
+function refreshUIAfterAccountSwitch(){
+  usernameInput.value = save.username;
+  updateCurrencyDisplays();
+  renderAvatar();
+  updateQuestMenuUI();
+  updateSoundBtn();
+}
+function updateAccountUI(){
+  const activeAccount = getActiveAccountName();
+  const loggedOutView = document.getElementById('accountLoggedOutView');
+  const loggedInView = document.getElementById('accountLoggedInView');
+  document.getElementById('accountError').textContent = '';
+  if(activeAccount){
+    loggedOutView.classList.add('hidden');
+    loggedInView.classList.remove('hidden');
+    document.getElementById('accountCurrentName').textContent = activeAccount;
+    accountBtn.innerHTML = '<svg class="icon"><use href="#icon-bag"/></svg><span></span>';
+    accountBtn.querySelector('span').textContent = activeAccount;
+    accountBtn.title = 'Account: '+activeAccount;
+  } else {
+    loggedOutView.classList.remove('hidden');
+    loggedInView.classList.add('hidden');
+    accountBtn.innerHTML = '<svg class="icon"><use href="#icon-bag"/></svg><span>Guest</span>';
+    accountBtn.title = 'Sign in / create account';
+  }
+}
+accountBtn.addEventListener('click', ()=>{
+  mainMenu.classList.add('hidden');
+  accountMenu.classList.remove('hidden');
+  updateAccountUI();
+});
+function closeAccount(){
+  accountMenu.classList.add('hidden');
+  mainMenu.classList.remove('hidden');
+  updateQuestMenuUI();
+}
+document.getElementById('closeAccountBtn').addEventListener('click', closeAccount);
+document.getElementById('backFromAccountBtn').addEventListener('click', closeAccount);
+document.getElementById('accountSignInBtn').addEventListener('click', ()=>{
+  const u = document.getElementById('accountUsernameInput').value;
+  const p = document.getElementById('accountPasswordInput').value;
+  const res = signIn(u,p);
+  if(!res.ok){ document.getElementById('accountError').textContent = res.msg; return; }
+  persist();
+  refreshUIAfterAccountSwitch();
+  updateAccountUI();
+  showToast(`Signed in as ${getActiveAccountName()}`);
+  SFX.purchase();
+});
+document.getElementById('accountSignUpBtn').addEventListener('click', ()=>{
+  const u = document.getElementById('accountUsernameInput').value;
+  const p = document.getElementById('accountPasswordInput').value;
+  const res = signUp(u,p);
+  if(!res.ok){ document.getElementById('accountError').textContent = res.msg; return; }
+  persist();
+  refreshUIAfterAccountSwitch();
+  updateAccountUI();
+  showToast(`Account created — signed in as ${getActiveAccountName()}`);
+  SFX.achievement();
+});
+document.getElementById('accountSignOutBtn').addEventListener('click', ()=>{
+  signOut();
+  refreshUIAfterAccountSwitch();
+  updateAccountUI();
+  showToast('Signed out — using local guest progress');
+  SFX.click();
+});
+updateAccountUI();
 
 /* ============ GAME ENTITIES ============ */
 function sizeToRadius(size){ return 12 + Math.sqrt(size)*3.4; }
@@ -2721,6 +5253,7 @@ function spawnMegalodon(){
   playerTotemsEatenThisBoss = 0;
   initTotems();
   showToast('The Megalodon has arrived!');
+  SFX.bossSpawn();
 }
 
 function killMegalodon(){
@@ -2744,6 +5277,7 @@ function killMegalodon(){
   } else {
     showToast('The Megalodon has been defeated!');
   }
+  SFX.bossDefeat();
   save.lifetime.bossKills++;
   persist();
   checkAchievements();
@@ -2761,6 +5295,7 @@ function eatTotem(t, eater){
     save.lifetime.totemsEaten++;
     persist();
     checkAchievements();
+    SFX.totem();
   }
   showToast(`Totem destroyed! (${TOTEM_SIZES.length - totems.length}/${TOTEM_SIZES.length})`);
   if(boss){
@@ -2804,6 +5339,7 @@ function spawnBessie(){
     whirlpools: []
   };
   showToast('Bessie has surfaced!');
+  SFX.bossSpawn();
 }
 
 function killBessie(byPlayer){
@@ -2827,6 +5363,7 @@ function killBessie(byPlayer){
   } else {
     showToast('Bessie has been defeated!');
   }
+  SFX.bossDefeat();
   save.lifetime.bossKills++;
   persist();
   checkAchievements();
@@ -3054,6 +5591,7 @@ function updateBessie(dtMs){
 
 function startBossAttack(){
   const b = boss;
+  SFX.attackWarn();
   if(b.type === 'megalodon'){ startMegalodonAttack(); return; }
   if(b.type === 'bessie'){ startBessieAttack(); return; }
 }
@@ -3167,6 +5705,7 @@ function endBossAttack(){
     b.state = 'stunned';
     b.stunTimer = BESSIE_STUN_MS;
     showToast('Bessie is stunned — eat her now!');
+    SFX.bossStunned();
   } else {
     b.state = 'roam';
     b.cooldown = 500 + Math.random()*500;
@@ -3968,6 +6507,7 @@ function updatePlayer(dtMs){
 
   if(dashing && !player.wasDashing){
     save.lifetime.dashesUsed++;
+    SFX.dash();
   }
   player.wasDashing = dashing;
 
@@ -4122,6 +6662,7 @@ function handleEating(){
       stats.eaten++;
       save.lifetime.totalFood++;
       progressQuest('eatFood', 1);
+      SFX.eatFood();
     }
   }
   // ai eats food (lightweight, no quest impact) — the bigger the player gets,
@@ -4153,6 +6694,7 @@ function handleEating(){
       save.lifetime.totalCritters++;
       progressQuest('eatFood', 1);
       showToast(`+${CRITTER_SIZE_BONUS} size!`);
+      SFX.eatCritter();
     }
   }
   // ai eats critters too (no quest impact)
@@ -4240,6 +6782,9 @@ function handleEating(){
           stats.kills++;
           save.lifetime.totalKills++;
           progressQuest('eatFish', 1);
+          SFX.eatFish();
+        } else if(B.isPlayer){
+          SFX.eatenByBoss();
         }
       }
     }
@@ -4588,6 +7133,7 @@ function startGame(){
   hud.classList.remove('hidden');
   miniQuest.classList.remove('hidden');
   dashBtn.style.display = isTouchDevice() ? 'flex' : 'none';
+  positionDashBtn();
   initPlayer();
   initAI();
   initFoods();
@@ -4614,6 +7160,7 @@ function startGame(){
 
 function endGame(){
   gameRunning = false;
+  SFX.gameOver();
   hud.classList.add('hidden');
   miniQuest.classList.add('hidden');
   document.getElementById('bossHud').style.display = 'none';
