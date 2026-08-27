@@ -396,7 +396,7 @@
       <div id="accountError" style="color:#d99a8a; font-size:0.82em; min-height:1.2em; margin-bottom:8px;"></div>
       <button class="btn btn-primary" id="accountSignInBtn">Sign In</button>
       <button class="btn btn-secondary" id="accountSignUpBtn">Create Account</button>
-      <div class="subtitle" style="margin-top:10px; font-size:0.68em;">Accounts are saved locally on this device/browser only — this does not sync across devices.</div>
+      <div class="subtitle" style="margin-top:10px; font-size:0.68em;">Accounts stay on this device/browser and won't automatically appear elsewhere — use a transfer code below to carry one to another device.</div>
     </div>
 
     <div id="accountLoggedInView" class="hidden">
@@ -405,6 +405,19 @@
         <div id="accountCurrentName" style="font-size:1.2em; color:#a8d0c6; font-weight:700;"></div>
       </div>
       <button class="btn btn-danger" id="accountSignOutBtn" style="margin-top:14px;">Sign Out</button>
+    </div>
+
+    <div style="border-top:1px solid rgba(210,232,240,0.14); margin:18px 0 4px; padding-top:14px;">
+      <div class="title" style="font-size:1.1em; margin-bottom:2px;">Move to Another Device</div>
+      <div class="subtitle" style="margin-bottom:10px; font-size:0.68em;">No server — a transfer code holds a snapshot of this profile (skins, currency, stats). Generate one here, then paste it in on the other device.</div>
+      <button class="btn btn-secondary" id="generateTransferCodeBtn"><svg class="icon"><use href="#icon-bag"/></svg> Get Transfer Code</button>
+      <textarea id="transferCodeOutput" class="hidden" readonly rows="3" style="width:100%; margin-top:8px; padding:10px; border-radius:8px; border:1px solid rgba(210,232,240,0.2); background:rgba(0,0,0,0.2); color:#eaf4f7; font-size:0.72em; font-family:monospace; resize:none;"></textarea>
+      <button class="btn btn-ghost hidden" id="copyTransferCodeBtn" style="margin-top:6px;">Copy Code</button>
+
+      <textarea id="transferCodeInput" placeholder="Paste a transfer code here" rows="3" style="width:100%; margin-top:14px; padding:10px; border-radius:8px; border:1px solid rgba(210,232,240,0.2); background:rgba(0,0,0,0.2); color:#eaf4f7; font-size:0.72em; font-family:monospace; resize:none;"></textarea>
+      <div id="transferError" style="color:#d99a8a; font-size:0.82em; min-height:1.2em; margin:6px 0 2px;"></div>
+      <button class="btn btn-secondary" id="applyTransferCodeBtn">Load Transfer Code</button>
+      <div class="subtitle" style="margin-top:8px; font-size:0.68em;">Loading a code replaces the profile currently active on this device — sign in to the right account (or stay a guest) first if that matters.</div>
     </div>
 
     <button class="btn btn-ghost" id="backFromAccountBtn" style="margin-top:10px;"><svg class="icon"><use href="#icon-back"/></svg> Back to Menu</button>
@@ -5157,6 +5170,74 @@ document.getElementById('accountSignOutBtn').addEventListener('click', ()=>{
   updateAccountUI();
   showToast('Signed out — using local guest progress');
   SFX.click();
+});
+
+/* ============ TRANSFER CODE (manual cross-device backup) ============ */
+// There's no server, so a "transfer code" is just the current profile's save
+// data, base64-encoded with a tiny checksum so garbled pastes get caught.
+// Generate it on device A, paste it into device B to carry the profile over.
+const TRANSFER_PREFIX = 'FISHYIO1:';
+function encodeTransferCode(data){
+  const json = JSON.stringify(data);
+  let sum = 0;
+  for(let i=0;i<json.length;i++) sum = (sum + json.charCodeAt(i)*(i+1)) % 999983;
+  const payload = { d: data, c: sum };
+  return TRANSFER_PREFIX + btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+}
+function decodeTransferCode(code){
+  code = (code||'').trim();
+  if(!code.startsWith(TRANSFER_PREFIX)) return { ok:false, msg:'That doesn\'t look like a transfer code.' };
+  let payload;
+  try { payload = JSON.parse(decodeURIComponent(escape(atob(code.slice(TRANSFER_PREFIX.length))))); }
+  catch(e){ return { ok:false, msg:'Couldn\'t read that code — check it was pasted in full.' }; }
+  if(!payload || typeof payload !== 'object' || !payload.d) return { ok:false, msg:'That code is missing data.' };
+  const json = JSON.stringify(payload.d);
+  let sum = 0;
+  for(let i=0;i<json.length;i++) sum = (sum + json.charCodeAt(i)*(i+1)) % 999983;
+  if(sum !== payload.c) return { ok:false, msg:'That code looks corrupted — try copying it again.' };
+  return { ok:true, data: payload.d };
+}
+document.getElementById('generateTransferCodeBtn').addEventListener('click', ()=>{
+  const code = encodeTransferCode(save);
+  const out = document.getElementById('transferCodeOutput');
+  out.value = code;
+  out.classList.remove('hidden');
+  document.getElementById('copyTransferCodeBtn').classList.remove('hidden');
+  out.select();
+  SFX.click();
+});
+document.getElementById('copyTransferCodeBtn').addEventListener('click', ()=>{
+  const out = document.getElementById('transferCodeOutput');
+  out.select();
+  let copied = false;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(out.value).then(()=>showToast('Copied to clipboard')).catch(()=>{
+      try { document.execCommand('copy'); showToast('Copied to clipboard'); } catch(e){ showToast('Select the code above and copy it manually'); }
+    });
+    copied = true;
+  }
+  if(!copied){
+    try { document.execCommand('copy'); showToast('Copied to clipboard'); }
+    catch(e){ showToast('Select the code above and copy it manually'); }
+  }
+});
+document.getElementById('applyTransferCodeBtn').addEventListener('click', ()=>{
+  const errEl = document.getElementById('transferError');
+  errEl.textContent = '';
+  const raw = document.getElementById('transferCodeInput').value;
+  const res = decodeTransferCode(raw);
+  if(!res.ok){ errEl.textContent = res.msg; return; }
+  const restored = fillSaveDefaults(res.data);
+  // Land it on whichever profile is currently active on this device — an
+  // account if signed in, otherwise the local guest slot — so it's not
+  // just floating in memory unsaved.
+  save = restored;
+  persist();
+  refreshUIAfterAccountSwitch();
+  updateAccountUI();
+  document.getElementById('transferCodeInput').value = '';
+  showToast(`Profile loaded — welcome back, ${save.username}`);
+  SFX.achievement();
 });
 updateAccountUI();
 
