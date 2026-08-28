@@ -503,6 +503,8 @@ const WORLD_W = 4000, WORLD_H = 4000;
 const NUM_AI = 20;
 const NUM_FOOD = 260;
 const BASE_SPEED = 2.6;
+const MINIMAP_SIZE = 150;
+const MINIMAP_MARGIN = 14;
 
 /* ============ BOSS / DASH CONSTANTS ============ */
 const BOSS_SPAWN_INTERVAL = 20*60*1000; // 20 minutes, ms
@@ -5090,8 +5092,19 @@ function updateDashSideBtn(){
 }
 function positionDashBtn(){
   const btn = document.getElementById('dashBtn');
-  btn.classList.toggle('side-left', save.dashSide === 'left');
-  btn.classList.toggle('side-right', save.dashSide !== 'left');
+  const isRight = save.dashSide !== 'left';
+  const btnSize = 78;
+  // Center the button within its half of the minimap box, computed straight
+  // from the same MINIMAP_SIZE/MINIMAP_MARGIN constants the minimap itself
+  // uses, so the two can never drift apart on any screen size.
+  const halfW = MINIMAP_SIZE / 2;
+  const centerFromRight = isRight
+    ? (MINIMAP_MARGIN + halfW / 2)
+    : (MINIMAP_MARGIN + halfW + halfW / 2);
+  btn.style.right = (centerFromRight - btnSize / 2) + 'px';
+  btn.style.bottom = (MINIMAP_MARGIN + MINIMAP_SIZE / 2 - btnSize / 2) + 'px';
+  btn.classList.toggle('side-left', !isRight);
+  btn.classList.toggle('side-right', isRight);
 }
 document.getElementById('dashSideBtn').addEventListener('click', ()=>{
   save.dashSide = save.dashSide === 'left' ? 'right' : 'left';
@@ -5350,11 +5363,11 @@ function killMegalodon(){
       r: 9
     });
   }
-  if(playerTotemsEatenThisBoss >= 2 && !save.megalodonDefeated){
+  if(playerTotemsEatenThisBoss >= TOTEM_SIZES.length && !save.megalodonDefeated){
     save.megalodonDefeated = true;
     if(!save.ownedSkins.includes('megalodonBone')) save.ownedSkins.push('megalodonBone');
     persist();
-    showToast('The Megalodon is defeated! Exclusive skin unlocked!');
+    showToast('You destroyed all 4 totems! Exclusive skin unlocked!');
   } else {
     showToast('The Megalodon has been defeated!');
   }
@@ -6792,17 +6805,18 @@ function handleEating(){
     }
   }
 
-  // player & AI eat totems (objective, no size gain — destroys the totem)
+  // player & AI eat totems — same "must be strictly bigger" rule as normal
+  // fish-eating-fish, so totems can't be eaten by whatever happens to bump into them
   for(let i=totems.length-1;i>=0;i--){
     const t = totems[i];
     if(!t.alive) continue;
     const dP = Math.hypot(t.x-player.x, t.y-player.y);
-    if(player.alive && dP < player.r*0.9 + t.r*0.7){
+    if(player.alive && player.size > t.size && dP < player.r*0.9 + t.r*0.7){
       eatTotem(t, player);
       continue;
     }
     for(const f of aiFish){
-      if(!f.alive) continue;
+      if(!f.alive || f.size <= t.size) continue;
       const d = Math.hypot(t.x-f.x, t.y-f.y);
       if(d < f.r*0.9 + t.r*0.7){
         eatTotem(t, f);
@@ -6958,8 +6972,6 @@ function drawFish(f){
 }
 
 /* ============ MINIMAP ============ */
-const MINIMAP_SIZE = 150;
-const MINIMAP_MARGIN = 14;
 function drawMinimap(){
   const x0 = canvas.width - MINIMAP_SIZE - MINIMAP_MARGIN;
   const y0 = canvas.height - MINIMAP_SIZE - MINIMAP_MARGIN;
@@ -7179,14 +7191,14 @@ function gameLoop(){
         }
       }
     } else if(boss && boss.type === 'bessie' && !boss.underground){
-      // touching Bessie is always fatal for one side: eat her while stunned,
-      // or she eats you the rest of the time
+      // touching Bessie is fatal unless you're bigger than her AND she's
+      // stunned — anything else (too small, or she's not stunned) means she eats you
       const allTargets = [player, ...aiFish].filter(f=>f.alive);
       for(const f of allTargets){
         if(!boss) break;
         const d = Math.hypot(f.x-boss.x, f.y-boss.y);
         if(d < boss.r*0.78 + f.r*0.4){
-          if(boss.state === 'stunned'){
+          if(boss.state === 'stunned' && f.size > boss.size){
             killBessie(f.isPlayer);
           } else {
             killFishByBoss(f);
