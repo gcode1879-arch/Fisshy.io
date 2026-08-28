@@ -222,8 +222,10 @@
     -webkit-user-select:none; user-select:none;
     box-shadow:0 4px 14px rgba(0,0,0,0.35);
   }
-  /* both sit "on top of" the minimap (bottom-right, 150px box, 14px margin) —
-     side-right hugs the minimap's right edge, side-left its left edge */
+  /* actual left/right/bottom offsets are computed in positionDashBtn() from
+     MINIMAP_SIZE/MINIMAP_MARGIN, so the base right/bottom below are just
+     fallbacks before that first runs — side-right sits above the minimap,
+     side-left hugs the minimap's left half */
   #dashBtn.side-right { right:14px; }
   #dashBtn.side-left { right:86px; }
   #dashBtn.on { background:rgba(217,90,70,0.8); transform:translate(0,0) scale(0.94); }
@@ -494,6 +496,36 @@
   </div>
 </div>
 
+<!-- ADMIN PANEL (secret — unlocked by typing ---/ADMINFISH/--- ) -->
+<div class="overlay hidden" id="adminMenu">
+  <div class="panel" style="position:relative;">
+    <button class="close-x" id="closeAdminBtn"><svg class="icon"><use href="#icon-close"/></svg></button>
+    <div class="title" style="font-size:1.9em;">Admin Panel</div>
+    <div class="subtitle" style="margin-bottom:14px;">unlocked with a secret code</div>
+
+    <div class="quest-box" style="text-align:left; margin-bottom:16px;">
+      <div class="quest-title" style="margin-bottom:8px;">Give Fishy Food</div>
+      <div style="display:flex; gap:8px;">
+        <input id="adminFoodInput" type="number" min="1" value="1000" style="flex:1; padding:10px; border-radius:8px; border:1px solid rgba(210,232,240,0.2); background:rgba(0,0,0,0.2); color:#eaf4f7; text-align:center;">
+        <button class="btn btn-primary" id="adminGiveFoodBtn" style="width:auto; padding:10px 16px;">Give</button>
+      </div>
+    </div>
+
+    <div class="quest-box" style="text-align:left; margin-bottom:16px;">
+      <div class="quest-title" style="margin-bottom:8px;">Grant a Skin</div>
+      <select id="adminSkinSelect" style="width:100%; padding:10px; border-radius:8px; border:1px solid rgba(210,232,240,0.2); background:rgba(0,0,0,0.2); color:#eaf4f7; margin-bottom:10px;"></select>
+      <div class="row">
+        <button class="btn btn-secondary" id="adminGrantSkinBtn">Grant</button>
+        <button class="btn btn-primary" id="adminGrantEquipSkinBtn">Grant &amp; Equip</button>
+      </div>
+    </div>
+
+    <button class="btn btn-ghost" id="adminUnlockAllSkinsBtn" style="margin-bottom:10px;"><svg class="icon"><use href="#icon-bag"/></svg> Unlock All Skins</button>
+    <div id="adminMessage" style="min-height:1.4em; text-align:center; font-weight:700; font-size:0.85em; margin-bottom:6px; color:#a8d0c6;"></div>
+    <button class="btn btn-ghost" id="backFromAdminBtn"><svg class="icon"><use href="#icon-back"/></svg> Close</button>
+  </div>
+</div>
+
 <!-- GAME OVER -->
 <div class="overlay hidden" id="gameOverMenu">
   <div class="panel" id="gameOverPanel">
@@ -758,6 +790,19 @@ evilFishImg.src = 'https://iili.io/CDbM3jS.png';
 // Flip to true if the source image turns out to face the opposite way from
 // how fish are oriented in-game (facing right = facing along +X).
 const EVIL_FISH_FLIP = false;
+
+// Evil Fish special-effect images: one shown behind the fish while it dashes,
+// one left behind at a victim's position for a few seconds after a kill.
+const evilFishDashImg = new Image();
+evilFishDashImg.crossOrigin = 'anonymous';
+evilFishDashImg.src = 'https://iili.io/CmcpdGI.png';
+
+const evilFishKillImg = new Image();
+evilFishKillImg.crossOrigin = 'anonymous';
+evilFishKillImg.src = 'https://iili.io/CmcZJN2.png';
+
+const KILL_EFFECT_DURATION_MS = 3000;
+let killEffects = []; // {x, y, r, start}
 
 const SKINS = {
   classic: {
@@ -5158,6 +5203,94 @@ function closeCodeMenu(){
   updateQuestMenuUI();
 }
 
+/* ============ ADMIN PANEL (secret) ============ */
+// Hidden dev/cheat panel. Not linked from any button — it only opens when the
+// exact sequence below is typed anywhere in the page (a running buffer of the
+// last N keys typed is compared against it on every keystroke).
+const adminMenu = document.getElementById('adminMenu');
+const ADMIN_SECRET_CODE = '---/adminfish/---';
+let adminSecretBuffer = '';
+window.addEventListener('keydown', e=>{
+  if(e.key && e.key.length === 1){
+    adminSecretBuffer = (adminSecretBuffer + e.key.toLowerCase()).slice(-ADMIN_SECRET_CODE.length);
+    if(adminSecretBuffer === ADMIN_SECRET_CODE){
+      adminSecretBuffer = '';
+      openAdminMenu();
+    }
+  }
+});
+function populateAdminSkinSelect(){
+  const sel = document.getElementById('adminSkinSelect');
+  const prevValue = sel.value;
+  const keys = Object.keys(SKINS).sort((a,b)=> SKINS[a].name.localeCompare(SKINS[b].name));
+  sel.innerHTML = keys.map(k=>
+    `<option value="${k}">${SKINS[k].name}${save.ownedSkins.includes(k) ? ' (owned)' : ''}</option>`
+  ).join('');
+  if(keys.includes(prevValue)) sel.value = prevValue;
+}
+function adminMsg(text){
+  document.getElementById('adminMessage').textContent = text;
+}
+function openAdminMenu(){
+  populateAdminSkinSelect();
+  adminMsg('');
+  if(!mainMenu.classList.contains('hidden')) mainMenu.classList.add('hidden');
+  adminMenu.classList.remove('hidden');
+  showToast('Admin panel unlocked!');
+  SFX.achievement();
+}
+function closeAdminMenu(){
+  adminMenu.classList.add('hidden');
+  if(!gameRunning){
+    mainMenu.classList.remove('hidden');
+    updateQuestMenuUI();
+  }
+}
+document.getElementById('closeAdminBtn').addEventListener('click', closeAdminMenu);
+document.getElementById('backFromAdminBtn').addEventListener('click', closeAdminMenu);
+document.getElementById('adminGiveFoodBtn').addEventListener('click', ()=>{
+  const input = document.getElementById('adminFoodInput');
+  const amt = Math.max(0, Math.floor(Number(input.value) || 0));
+  if(amt <= 0){ adminMsg('Enter an amount first.'); return; }
+  save.currency += amt;
+  persist();
+  updateCurrencyDisplays();
+  adminMsg(`+${amt} Fishy Food given.`);
+  SFX.purchase();
+});
+document.getElementById('adminGrantSkinBtn').addEventListener('click', ()=>{
+  const key = document.getElementById('adminSkinSelect').value;
+  if(!key || !SKINS[key]) return;
+  if(!save.ownedSkins.includes(key)) save.ownedSkins.push(key);
+  persist();
+  populateAdminSkinSelect();
+  renderShop(); renderInventory();
+  adminMsg(`Granted ${SKINS[key].name}.`);
+  SFX.equip();
+});
+document.getElementById('adminGrantEquipSkinBtn').addEventListener('click', ()=>{
+  const key = document.getElementById('adminSkinSelect').value;
+  if(!key || !SKINS[key]) return;
+  if(!save.ownedSkins.includes(key)) save.ownedSkins.push(key);
+  save.activeSkin = key;
+  persist();
+  populateAdminSkinSelect();
+  renderShop(); renderInventory(); renderAvatar();
+  adminMsg(`Granted & equipped ${SKINS[key].name}.`);
+  SFX.equip();
+});
+document.getElementById('adminUnlockAllSkinsBtn').addEventListener('click', ()=>{
+  let added = 0;
+  Object.keys(SKINS).forEach(k=>{
+    if(!save.ownedSkins.includes(k)){ save.ownedSkins.push(k); added++; }
+  });
+  persist();
+  populateAdminSkinSelect();
+  renderShop(); renderInventory();
+  adminMsg(added > 0 ? `Unlocked ${added} skin(s).` : 'All skins already unlocked.');
+  SFX.purchase();
+});
+
 /* ============ SOUND TOGGLE ============ */
 function updateSoundBtn(){
   const btn = document.getElementById('soundToggleBtn');
@@ -5183,15 +5316,21 @@ function positionDashBtn(){
   const btn = document.getElementById('dashBtn');
   const isRight = save.dashSide !== 'left';
   const btnSize = 78;
-  // Center the button within its half of the minimap box, computed straight
-  // from the same MINIMAP_SIZE/MINIMAP_MARGIN constants the minimap itself
-  // uses, so the two can never drift apart on any screen size.
   const halfW = MINIMAP_SIZE / 2;
-  const centerFromRight = isRight
-    ? (MINIMAP_MARGIN + halfW / 2)
-    : (MINIMAP_MARGIN + halfW + halfW / 2);
-  btn.style.right = (centerFromRight - btnSize / 2) + 'px';
-  btn.style.bottom = (MINIMAP_MARGIN + MINIMAP_SIZE / 2 - btnSize / 2) + 'px';
+  if(isRight){
+    // Sits directly above the minimap, clear of it entirely — right edge
+    // lines up with the minimap's right edge, with a gap above its top edge.
+    const gapAboveMinimap = 12;
+    btn.style.right = MINIMAP_MARGIN + 'px';
+    btn.style.bottom = (MINIMAP_MARGIN + MINIMAP_SIZE + gapAboveMinimap) + 'px';
+  } else {
+    // Center the button within the minimap's left half, computed straight
+    // from the same MINIMAP_SIZE/MINIMAP_MARGIN constants the minimap itself
+    // uses, so the two can never drift apart on any screen size.
+    const centerFromRight = MINIMAP_MARGIN + halfW + halfW / 2;
+    btn.style.right = (centerFromRight - btnSize / 2) + 'px';
+    btn.style.bottom = (MINIMAP_MARGIN + MINIMAP_SIZE / 2 - btnSize / 2) + 'px';
+  }
   btn.classList.toggle('side-left', !isRight);
   btn.classList.toggle('side-right', isRight);
 }
@@ -6816,6 +6955,7 @@ function updateAI(f){
     f.size = Math.max(1, f.size - DASH_DRAIN_PER_SEC/60);
     f.updateRadius();
   }
+  f.wasDashing = aiDashing;
 
   // chase harder when the target has grown large — makes the AI feel like it's
   // actively racing to catch up rather than casually wandering
@@ -6958,6 +7098,9 @@ function handleEating(){
 
       if(bodyHit || headHit){
         // A eats B
+        if(A.skinKey === 'evilFish'){
+          killEffects.push({ x:B.x, y:B.y, r:B.r, start:performance.now() });
+        }
         B.alive = false;
         A.size += Math.max(4, B.size*0.55);
         A.updateRadius();
@@ -7045,6 +7188,15 @@ function drawFish(f){
   ctx.translate(p.x,p.y);
   const angle = Math.atan2(f.dirY, f.dirX);
   ctx.rotate(angle);
+  if(f.skinKey === 'evilFish' && f.wasDashing && evilFishDashImg.complete && evilFishDashImg.naturalWidth > 0){
+    const dAspect = evilFishDashImg.naturalWidth / evilFishDashImg.naturalHeight;
+    const dh = f.r*3.6;
+    const dw = dh*dAspect;
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.drawImage(evilFishDashImg, -dw/2, -dh/2, dw, dh);
+    ctx.restore();
+  }
   renderSkin(ctx, f.r, f.tailPhase, f.skinKey || 'classic');
   ctx.restore();
 
@@ -7058,6 +7210,31 @@ function drawFish(f){
   ctx.fillStyle = f.isPlayer ? '#a8d0c6' : '#eaf4f7';
   ctx.fillText(label, p.x, p.y - f.r - 10);
   ctx.restore();
+}
+
+function drawKillEffects(){
+  const now = performance.now();
+  for(let i=killEffects.length-1;i>=0;i--){
+    const k = killEffects[i];
+    const age = now - k.start;
+    if(age >= KILL_EFFECT_DURATION_MS){
+      killEffects.splice(i,1);
+      continue;
+    }
+    if(!evilFishKillImg.complete || evilFishKillImg.naturalWidth === 0) continue;
+    const p = worldToScreen(k.x, k.y);
+    if(p.x < -150 || p.x > canvas.width+150 || p.y < -150 || p.y > canvas.height+150) continue;
+    const aspect = evilFishKillImg.naturalWidth / evilFishKillImg.naturalHeight;
+    const h = Math.max(60, k.r*3.2);
+    const w = h*aspect;
+    // gentle fade in the final half-second so it doesn't just pop out
+    const fadeStart = KILL_EFFECT_DURATION_MS - 500;
+    const alpha = age > fadeStart ? Math.max(0, 1 - (age-fadeStart)/500) : 1;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(evilFishKillImg, p.x - w/2, p.y - h/2, w, h);
+    ctx.restore();
+  }
 }
 
 /* ============ MINIMAP ============ */
@@ -7154,6 +7331,7 @@ function render(){
   drawCritters();
   drawTotems();
   drawBossDrops();
+  drawKillEffects();
   const allFish = [...aiFish, player].sort((a,b)=>a.r-b.r);
   for(const f of allFish) if(f.alive) drawFish(f);
   drawBoss();
@@ -7326,6 +7504,7 @@ function startGame(){
   boss = null;
   totems = [];
   bossDropPellets = [];
+  killEffects = [];
   playerTotemsEatenThisBoss = 0;
   gameRunning = true;
   lastFrameTime = performance.now();
