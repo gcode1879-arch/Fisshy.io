@@ -308,6 +308,9 @@
       <path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/>
       <path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
     </symbol>
+    <symbol id="icon-code" viewBox="0 0 24 24">
+      <path d="M8.5 7L3.5 12l5 5M15.5 7l5 5-5 5M13.5 4.5l-3 15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
     <symbol id="icon-skull" viewBox="0 0 24 24">
       <path d="M12 3c-4.4 0-7.5 3.1-7.5 7 0 2.5 1.2 4.2 2.5 5.4V18a1 1 0 0 0 1 1h.6v1.5a1 1 0 0 0 1 1h1v-1.5h2v1.5h1a1 1 0 0 0 1-1V19h.6a1 1 0 0 0 1-1v-2.6c1.3-1.2 2.5-2.9 2.5-5.4 0-3.9-3.1-7-7.5-7z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
       <circle cx="9" cy="10.5" r="1.4" fill="currentColor"/>
@@ -378,8 +381,26 @@
     </div>
     <button class="btn btn-ghost" id="wheelBtn" style="margin-top:2px;"><svg class="icon"><use href="#icon-wheel"/></svg> Spin the Wheel</button>
     <button class="btn btn-ghost" id="achievementsBtn" style="margin-top:2px;"><svg class="icon"><use href="#icon-check"/></svg> Achievements</button>
+    <button class="btn btn-ghost" id="codeBtn" style="margin-top:2px;"><svg class="icon"><use href="#icon-code"/></svg> Redeem Code</button>
     <button class="btn btn-ghost" id="soundToggleBtn" style="margin-top:2px;"><svg class="icon"><use href="#icon-sound"/></svg> Sound: On</button>
     <button class="btn btn-ghost" id="dashSideBtn" style="margin-top:2px;"><svg class="icon"><use href="#icon-dash"/></svg> Dash Button: Right</button>
+  </div>
+</div>
+
+<!-- REDEEM CODE MENU -->
+<div class="overlay hidden" id="codeMenu">
+  <div class="panel" style="position:relative;">
+    <button class="close-x" id="closeCodeBtn"><svg class="icon"><use href="#icon-close"/></svg></button>
+    <div class="title" style="font-size:1.9em;">Redeem Code</div>
+    <div class="subtitle" style="margin-bottom:14px;">codes are hidden around the game — keep an eye out</div>
+    <input id="codeInput" type="text" maxlength="30" placeholder="Enter code" style="width:100%; margin-bottom:10px; padding:10px; border-radius:8px; border:1px solid rgba(210,232,240,0.2); background:rgba(0,0,0,0.2); color:#eaf4f7; text-align:center;">
+    <div id="codeMessage" style="min-height:1.4em; text-align:center; font-weight:700; font-size:0.9em; margin-bottom:10px;"></div>
+    <button class="btn btn-primary" id="submitCodeBtn">Redeem</button>
+    <div class="quest-box" style="text-align:left; margin-top:16px;">
+      <div class="quest-title" style="margin-bottom:6px;">Hints</div>
+      <div style="font-size:0.8em; color:#a8d0c6; line-height:1.5;" id="codeHintsList"></div>
+    </div>
+    <button class="btn btn-ghost" id="backFromCodeBtn" style="margin-top:10px;"><svg class="icon"><use href="#icon-back"/></svg> Back to Menu</button>
   </div>
 </div>
 
@@ -559,6 +580,7 @@ function defaultSave(){
   s.achievementsClaimed = [];
   s.sfxOn = true;
   s.dashSide = 'right';
+  s.redeemedCodes = [];
   return s;
 }
 function fillSaveDefaults(s){
@@ -585,6 +607,7 @@ function fillSaveDefaults(s){
   if(!Array.isArray(s.achievementsClaimed)) s.achievementsClaimed = [];
   if(typeof s.sfxOn !== 'boolean') s.sfxOn = true;
   if(s.dashSide !== 'left' && s.dashSide !== 'right') s.dashSide = 'right';
+  if(!Array.isArray(s.redeemedCodes)) s.redeemedCodes = [];
   return s;
 }
 
@@ -727,35 +750,44 @@ function renderAchievements(){
 
 /* ============ SKINS ============ */
 // Each skin is a draw function(ctx, r, tailPhase) drawing a fish of "radius" r centered at 0,0 facing right (+x)
+// Evil Fish uses a real image instead of a procedural drawing. Preloaded once
+// here; skin.draw() falls back to a plain silhouette until it's finished loading.
+const evilFishImg = new Image();
+evilFishImg.crossOrigin = 'anonymous';
+evilFishImg.src = 'https://iili.io/CDbM3jS.png';
+// Flip to true if the source image turns out to face the opposite way from
+// how fish are oriented in-game (facing right = facing along +X).
+const EVIL_FISH_FLIP = false;
+
 const SKINS = {
   classic: {
     name:'Classic', price:0,
-    colors:['#5c9aad','#cfe4ec'],
+    colors:['#3d5c8a','#b3d4f0'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   sand: {
     name:'Sandy', price:40,
-    colors:['#d3b98c','#f2e6cf'],
+    colors:['#3d8a5c','#b3f0d4'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   seafoam: {
     name:'Seafoam', price:50,
-    colors:['#7fb0a8','#dcefe9'],
+    colors:['#6b8a3d','#c9e09a'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   slate: {
     name:'Slate', price:50,
-    colors:['#6b7c88','#c9d4d9'],
+    colors:['#1f1f8a','#a3a3f0'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   azure: {
     name:'Azure Glider', price:80,
-    colors:['#3d7ea6','#cfeaff'],
+    colors:['#6b6b6b','#c9c9c9'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   coral: {
     name:'Coral Reef', price:70,
-    colors:['#c9847a','#f2d8d2'],
+    colors:['#5c1f1f','#d4a3a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,'#f7f0ea',[[-0.25,-0.15],[0.05,0.2],[-0.45,0.15]]);
@@ -763,17 +795,17 @@ const SKINS = {
   },
   kelp: {
     name:'Kelp', price:90,
-    colors:['#4d7a5c','#c8ddc3'],
+    colors:['#4a4a2a','#c4c47a'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   pearl: {
     name:'Pearl', price:100,
-    colors:['#e6e2d6','#ffffff'],
+    colors:['#3d6b8a','#9ac9e0'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   ink: {
     name:'Inkspot', price:120,
-    colors:['#1f3a4f','#7fa8bd'],
+    colors:['#1f8a3d','#a3f0b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,'#dfeef4',[[-0.3,-0.1],[-0.05,0.22],[-0.5,0.05],[0.1,-0.28]]);
@@ -781,7 +813,7 @@ const SKINS = {
   },
   shark: {
     name:'Shark Fin', price:150,
-    colors:['#7a8894','#dde3e7'],
+    colors:['#8a1f5c','#f0a3d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       c.save();
@@ -797,12 +829,12 @@ const SKINS = {
   },
   driftwood: {
     name:'Driftwood', price:110,
-    colors:['#8a6f52','#d9c8ab'],
+    colors:['#6b3d8a','#c99ae0'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   storm: {
     name:'Storm Grey', price:160,
-    colors:['#4a5560','#9fb0ba'],
+    colors:['#5c1f8a','#d4a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,'#c7d2d8',0.4);
@@ -810,7 +842,7 @@ const SKINS = {
   },
   arctic: {
     name:'Arctic Frost', price:170,
-    colors:['#cfeaff','#5c9aad'],
+    colors:['#f0ece0','#ffffff'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,'#3d7ea6',0.4);
@@ -818,7 +850,7 @@ const SKINS = {
   },
   camo: {
     name:'Camo Diver', price:190,
-    colors:['#5c6b4a','#93a37b'],
+    colors:['#2a2a2a','#7a7a7a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,'#414d33',[[-0.2,-0.18],[0.15,0.15],[-0.45,0.12]],0.24);
@@ -826,7 +858,7 @@ const SKINS = {
   },
   golden: {
     name:'Golden Scale', price:220,
-    colors:['#c9a24d','#f2e0ad'],
+    colors:['#8a3d1f','#f0b38a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,'#f7ecc9',0.55);
@@ -834,7 +866,7 @@ const SKINS = {
   },
   abyss: {
     name:'Abyss', price:260,
-    colors:['#101f2c','#33505f'],
+    colors:['#8a6b3d','#e0c99a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,'#cfeaff',[[-0.3,-0.2],[0.0,0.18],[-0.5,0.08],[0.15,-0.3]],0.06);
@@ -842,7 +874,7 @@ const SKINS = {
   },
   crowned: {
     name:'Royal Crown', price:240,
-    colors:['#6b5c8f','#d8cdea'],
+    colors:['#3d4a4a','#a3c4c4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       c.save();
@@ -863,17 +895,17 @@ const SKINS = {
   },
   pixel: {
     name:'Pixel Fish', price:130,
-    colors:['#5c9aad','#e8a23d'],
+    colors:['#2a4a73','#73a8d9'],
     draw(c,r,tail,colors){ drawPixelFish(c,r,tail,colors[0],colors[1]); }
   },
   seaglass: {
     name:'Sea Glass', price:75,
-    colors:['#8fbfae','#e2f0e8'],
+    colors:['#4a2a73','#a873d9'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   lagoon: {
     name:'Lagoon', price:95,
-    colors:['#2f8f8a','#bdeae4'],
+    colors:['#2a4a4a','#7ac4c4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,'#bdeae4',0.45);
@@ -881,7 +913,7 @@ const SKINS = {
   },
   tidepool: {
     name:'Tidepool', price:115,
-    colors:['#3d6b7d','#a3c9d4'],
+    colors:['#3d1f8a','#b3a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,'#e5f2f6',[[-0.25,-0.15],[0.05,0.2],[-0.45,0.15]]);
@@ -889,7 +921,7 @@ const SKINS = {
   },
   urchin: {
     name:'Urchin', price:135,
-    colors:['#4a3f6b','#9d8bc9'],
+    colors:['#4a4a3d','#c4c4a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,'#2c2545',[[-0.2,-0.2],[0.2,-0.2],[-0.35,0.1],[0.15,0.2],[-0.05,-0.32]],0.05);
@@ -897,7 +929,7 @@ const SKINS = {
   },
   moonlight: {
     name:'Moonlight', price:145,
-    colors:['#324b66','#9db4cc'],
+    colors:['#8a3d5c','#f0b3d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,'#dce8f2',0.5);
@@ -905,7 +937,7 @@ const SKINS = {
   },
   seaturtle: {
     name:'Sea Turtle', price:155,
-    colors:['#5c7a4a','#a8c48a'],
+    colors:['#5c8a3d','#d4f0b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,'#37502c',[[-0.15,-0.1],[0.1,0.15],[-0.35,0.12],[0.15,-0.15]],0.09);
@@ -913,7 +945,7 @@ const SKINS = {
   },
   bioluminescent: {
     name:'Bioluminous', price:200,
-    colors:['#1a2b3d','#4de0d6'],
+    colors:['#4a2a4a','#c47ac4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,'#4de0d6',[[-0.3,-0.2],[0.0,0.18],[-0.5,0.08],[0.15,-0.3]],0.055);
@@ -921,7 +953,7 @@ const SKINS = {
   },
   angelfish: {
     name:'Angelfish', price:175,
-    colors:['#e8d9a8','#4a4a6b'],
+    colors:['#2a734a','#73d9a8'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,'#4a4a6b',0.3);
@@ -930,7 +962,7 @@ const SKINS = {
   },
   clownfish: {
     name:'Clownfish', price:105,
-    colors:['#d9713d','#f2eee4'],
+    colors:['#1f5c8a','#a3d4f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,'#f2eee4',0.45);
@@ -938,7 +970,7 @@ const SKINS = {
   },
   deepsea: {
     name:'Deep Sea', price:280,
-    colors:['#060f18','#274456'],
+    colors:['#5c3d8a','#d4b3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       c.save();
@@ -957,27 +989,27 @@ const SKINS = {
   },
   pixelReef: {
     name:'Pixel Reef', price:150,
-    colors:['#3d8f7a','#e8a23d'],
+    colors:['#1f3d8a','#a3b3f0'],
     draw(c,r,tail,colors){ drawPixelFish(c,r,tail,colors[0],colors[1]); }
   },
   rainbow: {
     name:'Rainbow Fish', price:260,
-    colors:['#e0e6ea','#ffffff'],
+    colors:['#0a0a0a','#5c5c5c'],
     draw(c,r,tail,colors){ drawRainbowFish(c,r,tail,colors); }
   },
   koi: {
     name:'Koi', price:230,
-    colors:['#f2ede0','#2a2a2a'],
+    colors:['#734a2a','#d9a873'],
     draw(c,r,tail,colors){ drawKoiFish(c,r,tail,'#f2ede0','#d9713d','#2a2a2a'); }
   },
   chinese: {
     name:'Dragon Scale', price:250,
-    colors:['#b5342c','#d9b45a'],
+    colors:['#3d8a6b','#9ae0c9'],
     draw(c,r,tail,colors){ drawChineseFish(c,r,tail,colors[0],colors[1]); }
   },
   butterflyfish: {
     name:'Butterflyfish', price:120,
-    colors:['#e0c847','#2a2a2a'],
+    colors:['#4a732a','#a8d973'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,'#2a2a2a',0.18);
@@ -985,12 +1017,12 @@ const SKINS = {
   },
   mangrove: {
     name:'Mangrove', price:85,
-    colors:['#6b5638','#a68a5f'],
+    colors:['#1f8a5c','#a3f0d4'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   stingray: {
     name:'Stingray', price:210,
-    colors:['#4a5a63','#8fa3ab'],
+    colors:['#4a3d4a','#c4a3c4'],
     draw(c,r,tail,colors){
       c.save();
       c.fillStyle = colors[0];
@@ -1019,7 +1051,7 @@ const SKINS = {
   },
   jellyfish: {
     name:'Jellysoul', price:190,
-    colors:['#c9a3d9','#e8d3f0'],
+    colors:['#8a5c5c','#f0d4d4'],
     draw(c,r,tail,colors){
       c.save();
       c.fillStyle = colors[0];
@@ -1043,7 +1075,7 @@ const SKINS = {
   },
   sunrise: {
     name:'Sunrise', price:165,
-    colors:['#e88a3d','#f2d67a'],
+    colors:['#8a3d6b','#e09ac9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.5);
@@ -1051,7 +1083,7 @@ const SKINS = {
   },
   glassfish: {
     name:'Glassfish', price:145,
-    colors:['#cfe4ec','#8fb4c4'],
+    colors:['#5c8a1f','#d4f0a3'],
     draw(c,r,tail,colors){
       c.save();
       c.globalAlpha = 0.55;
@@ -1061,7 +1093,7 @@ const SKINS = {
   },
   volcanic: {
     name:'Volcanic', price:270,
-    colors:['#2a1a1a','#d9502c'],
+    colors:['#8a8a1f','#f0f0a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.5);
@@ -1070,12 +1102,12 @@ const SKINS = {
   },
   tidewalkerReef: {
     name:'Tidewalker Reef', price:130,
-    colors:['#3d6b8a','#a3c9d4'],
+    colors:['#8a1f3d','#f0a3b3'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   brinebelly: {
     name:'Brinebelly', price:95,
-    colors:['#6b8f8a','#dcefe9'],
+    colors:['#3d8a1f','#b3f0a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.6);
@@ -1083,7 +1115,7 @@ const SKINS = {
   },
   saltspray: {
     name:'Saltspray', price:115,
-    colors:['#8fa3ab','#e5f2f6'],
+    colors:['#8a5c3d','#f0d4b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.3,-0.15],[0.1,0.2],[-0.1,-0.3]],0.07);
@@ -1091,7 +1123,7 @@ const SKINS = {
   },
   obsidianDepths: {
     name:'Obsidian Depths', price:550,
-    colors:['#0e0e14','#c93d3d'],
+    colors:['#8a5c1f','#f0d4a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawHorns(c,r,colors[1]);
@@ -1100,7 +1132,7 @@ const SKINS = {
   },
   pearlescent: {
     name:'Pearlescent', price:220,
-    colors:['#e8e0ec','#c9a3d9'],
+    colors:['#1f5c5c','#a3d4d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.4);
@@ -1108,12 +1140,12 @@ const SKINS = {
   },
   emeraldfin: {
     name:'Emerald Fin', price:180,
-    colors:['#2f8f5c','#a8e0bd'],
+    colors:['#732a4a','#d973a8'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   tigerfish: {
     name:'Tiger Fish', price:200,
-    colors:['#e0973d','#2a2a2a'],
+    colors:['#3d5c8a','#b3d4f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.2);
@@ -1123,7 +1155,7 @@ const SKINS = {
   },
   frostbite: {
     name:'Frostbite', price:175,
-    colors:['#a3d4e0','#f0fbff'],
+    colors:['#3d8a5c','#b3f0d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.1,0.15]],0.08);
@@ -1131,17 +1163,17 @@ const SKINS = {
   },
   copperfin: {
     name:'Copperfin', price:140,
-    colors:['#b5713a','#e8c89a'],
+    colors:['#6b8a3d','#c9e09a'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   tidewalker: {
     name:'Tidewalker', price:95,
-    colors:['#5a7d8a','#c3dae0'],
+    colors:['#1f1f8a','#a3a3f0'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   duskfin: {
     name:'Duskfin', price:130,
-    colors:['#4a3a5c','#9d84b8'],
+    colors:['#6b6b6b','#c9c9c9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -1149,12 +1181,12 @@ const SKINS = {
   },
   brackish: {
     name:'Brackish', price:80,
-    colors:['#6b7355','#b3bc94'],
+    colors:['#5c1f1f','#d4a3a3'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   saltmarsh: {
     name:'Saltmarsh', price:100,
-    colors:['#7a8f6b','#d6e0c4'],
+    colors:['#4a4a2a','#c4c47a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.3,-0.15],[0.15,0.15]],0.06);
@@ -1162,7 +1194,7 @@ const SKINS = {
   },
   harborlight: {
     name:'Harborlight', price:150,
-    colors:['#e8c05a','#3d4a52'],
+    colors:['#3d6b8a','#9ac9e0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.55);
@@ -1170,7 +1202,7 @@ const SKINS = {
   },
   seafoamGlow: {
     name:'Seafoam Glow', price:160,
-    colors:['#7fd9c4','#e0f7f0'],
+    colors:['#1f8a3d','#a3f0b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.1,0.2],[-0.4,0.1]],0.05);
@@ -1178,7 +1210,7 @@ const SKINS = {
   },
   obsidian: {
     name:'Obsidian', price:220,
-    colors:['#0f0f14','#3d3d4a'],
+    colors:['#8a1f5c','#f0a3d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,'#5c5c6e',0.5);
@@ -1186,12 +1218,12 @@ const SKINS = {
   },
   ivory: {
     name:'Ivory', price:130,
-    colors:['#f2ede0','#d9c9a8'],
+    colors:['#6b3d8a','#c99ae0'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   crimsonTide: {
     name:'Crimson Tide', price:190,
-    colors:['#8f2f2a','#d9705a'],
+    colors:['#5c1f8a','#d4a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.4);
@@ -1199,7 +1231,7 @@ const SKINS = {
   },
   pixelTide: {
     name:'Pixel Tide', price:145,
-    colors:['#4a7d8a','#e8d347'],
+    colors:['#f0ece0','#ffffff'],
     draw(c,r,tail,colors){ drawPixelFish(c,r,tail,colors[0],colors[1]); }
   },
   megalodonBone: {
@@ -1227,12 +1259,12 @@ const SKINS = {
   },
   brine: {
     name:'Brine', price:75,
-    colors:['#4a5c52','#a3bcae'],
+    colors:['#2a2a2a','#7a7a7a'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   tidalGlass: {
     name:'Tidal Glass', price:110,
-    colors:['#6a8fa3','#dceef5'],
+    colors:['#8a3d1f','#f0b38a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.2,-0.15],[0.2,0.1]],0.07);
@@ -1240,7 +1272,7 @@ const SKINS = {
   },
   reefKing: {
     name:'Reef King', price:200,
-    colors:['#2f6b5c','#e0a83d'],
+    colors:['#8a6b3d','#e0c99a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.5);
@@ -1249,17 +1281,17 @@ const SKINS = {
   },
   frostbyte: {
     name:'Frostbyte', price:175,
-    colors:['#7fa8c9','#eaf4fb'],
+    colors:['#3d4a4a','#a3c4c4'],
     draw(c,r,tail,colors){ drawPixelFish(c,r,tail,colors[0],colors[1]); }
   },
   mudskipper: {
     name:'Mudskipper', price:65,
-    colors:['#6b5a45','#a8977a'],
+    colors:['#2a4a73','#73a8d9'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   neonReef: {
     name:'Neon Reef', price:215,
-    colors:['#3dd9c4','#e874d1'],
+    colors:['#4a2a73','#a873d9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -1267,7 +1299,7 @@ const SKINS = {
   },
   ghostfish: {
     name:'Ghostfish', price:160,
-    colors:['#cfe0e6','#f5fbfc'],
+    colors:['#2a4a4a','#7ac4c4'],
     draw(c,r,tail,colors){
       c.save();
       c.globalAlpha = 0.4;
@@ -1277,7 +1309,7 @@ const SKINS = {
   },
   emberTide: {
     name:'Ember Tide', price:180,
-    colors:['#b5502f','#e8a23d'],
+    colors:['#3d1f8a','#b3a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.5);
@@ -1285,7 +1317,7 @@ const SKINS = {
   },
   moray: {
     name:'Moray', price:135,
-    colors:['#5c4a3d','#8a7359'],
+    colors:['#4a4a3d','#c4c4a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,'#3d2f26',[[-0.3,-0.1],[0.1,0.2],[-0.5,0.1]],0.06);
@@ -1295,59 +1327,46 @@ const SKINS = {
     name:'Evil Fish', price:0, exclusive:true,
     colors:['#1a0d0d','#c92e2e'],
     draw(c,r,tail,colors){
-      drawBasicFish(c,r,tail,colors[0],colors[1]);
-      c.save();
-      // menacing red slit eye instead of the normal round eye look
-      c.fillStyle = colors[1];
-      c.beginPath();
-      c.ellipse(r*0.55,-r*0.14,r*0.13,r*0.045,0.15,0,Math.PI*2);
-      c.fill();
-      // jagged teeth along the front
-      c.fillStyle = '#e8e8e8';
-      for(let i=0;i<4;i++){
-        c.beginPath();
-        c.moveTo(r*0.55+i*r*0.1, r*0.18);
-        c.lineTo(r*0.6+i*r*0.1, r*0.34);
-        c.lineTo(r*0.5+i*r*0.1, r*0.34);
-        c.closePath();
-        c.fill();
+      if(evilFishImg.complete && evilFishImg.naturalWidth > 0){
+        // Sized to the same diameter (2r) every other skin uses for its body,
+        // so the visible fish and the actual circular hitbox line up —
+        // nothing drawn outside what can actually collide/be eaten.
+        const aspect = evilFishImg.naturalWidth / evilFishImg.naturalHeight;
+        const h = r*2;
+        const w = h*aspect;
+        c.save();
+        if(EVIL_FISH_FLIP) c.scale(-1,1);
+        c.drawImage(evilFishImg, -w/2, -h/2, w, h);
+        c.restore();
+      } else {
+        // fallback shown only until the image finishes loading
+        drawBasicFish(c,r,tail,colors[0],colors[1]);
       }
-      // spiked dorsal fin
-      c.fillStyle = colors[1];
-      for(let i=-1;i<=1;i++){
-        c.beginPath();
-        c.moveTo(i*r*0.22,-r*0.55);
-        c.lineTo(i*r*0.22+r*0.06,-r*1.05);
-        c.lineTo(i*r*0.22+r*0.14,-r*0.5);
-        c.closePath();
-        c.fill();
-      }
-      c.restore();
     }
   },
   barnacleCrust: {
     name:'Barnacle Crust', price:50,
-    colors:['#8a8272','#c4bca8'],
+    colors:['#8a3d5c','#f0b3d4'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   kelpDrifter: {
     name:'Kelp Drifter', price:60,
-    colors:['#4a6b4d','#9dbf9a'],
+    colors:['#5c8a3d','#d4f0b3'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   sandbar: {
     name:'Sandbar', price:55,
-    colors:['#c9b585','#f0e4c4'],
+    colors:['#4a2a4a','#c47ac4'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   tidepebble: {
     name:'Tidepebble', price:65,
-    colors:['#7a8a94','#c4d0d6'],
+    colors:['#2a734a','#73d9a8'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   cobaltCurrent: {
     name:'Cobalt Current', price:120,
-    colors:['#2f5c9e','#a3c4e8'],
+    colors:['#1f5c8a','#a3d4f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.4);
@@ -1355,7 +1374,7 @@ const SKINS = {
   },
   amberwave: {
     name:'Amberwave', price:125,
-    colors:['#c98a2f','#f0d49a'],
+    colors:['#5c3d8a','#d4b3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -1363,7 +1382,7 @@ const SKINS = {
   },
   violetDeep: {
     name:'Violet Deep', price:150,
-    colors:['#5c3d7d','#b89dd9'],
+    colors:['#1f3d8a','#a3b3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -1371,7 +1390,7 @@ const SKINS = {
   },
   jadeCurrent: {
     name:'Jade Current', price:155,
-    colors:['#2f7d5c','#a3e0c4'],
+    colors:['#0a0a0a','#5c5c5c'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -1379,28 +1398,28 @@ const SKINS = {
   },
   opaline: {
     name:'Opaline', price:195,
-    colors:['#a8c9d9','#f0e8f5'],
+    colors:['#734a2a','#d9a873'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
     }
   },
   prismScale: {
     name:'Prism Scale', price:205,
-    colors:['#4a7d9e','#e8d9f0'],
+    colors:['#3d8a6b','#9ae0c9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
     }
   },
   auroralFin: {
     name:'Auroral Fin', price:230,
-    colors:['#2f8f7a','#8ae0c9'],
+    colors:['#4a732a','#a8d973'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
     }
   },
   nebulaTide: {
     name:'Nebula Tide', price:245,
-    colors:['#3d2f6b','#a389e0'],
+    colors:['#1f8a5c','#a3f0d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.4);
@@ -1408,14 +1427,14 @@ const SKINS = {
   },
   starlitCurrent: {
     name:'Starlit Current', price:260,
-    colors:['#1f3a5c','#c9d9f0'],
+    colors:['#4a3d4a','#c4a3c4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
     }
   },
   solarFlare: {
     name:'Solar Flare', price:275,
-    colors:['#c9502f','#f0c94d'],
+    colors:['#8a5c5c','#f0d4d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.5);
@@ -1423,14 +1442,14 @@ const SKINS = {
   },
   voidCurrent: {
     name:'Void Current', price:290,
-    colors:['#0a0a12','#5c4a8a'],
+    colors:['#8a3d6b','#e09ac9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
     }
   },
   celestialKoi: {
     name:'Celestial Koi', price:560,
-    colors:['#1a2e1a','#d9524d'],
+    colors:['#5c8a1f','#d4f0a3'],
     draw(c,r,tail,colors){
       drawKoiFish(c,r,tail,'#f2ede0','#5c8fd9','#2a2a2a');
       drawAngelWings(c,r,'#dceaff','#a3c4e8');
@@ -1438,7 +1457,7 @@ const SKINS = {
   },
   phantomTide: {
     name:'Phantom Tide', price:575,
-    colors:['#1a1a3d','#e05c5c'],
+    colors:['#8a8a1f','#f0f0a3'],
     draw(c,r,tail,colors){
       c.save();
       c.globalAlpha = 0.55;
@@ -1449,7 +1468,7 @@ const SKINS = {
   },
   emberglass: {
     name:'Emberglass', price:590,
-    colors:['#2e1a0e','#e8895c'],
+    colors:['#8a1f3d','#f0a3b3'],
     draw(c,r,tail,colors){
       c.save();
       c.globalAlpha = 0.85;
@@ -1462,7 +1481,7 @@ const SKINS = {
   },
   krakenScale: {
     name:'Kraken Scale', price:610,
-    colors:['#0e2e2e','#d9524d'],
+    colors:['#3d8a1f','#b3f0a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.3,-0.2],[0.15,0.15],[-0.15,0.25],[0.25,-0.15]],0.06);
@@ -1471,7 +1490,7 @@ const SKINS = {
   },
   leviathan: {
     name:'Leviathan', price:650,
-    colors:['#3d3d3d','#c93d3d'],
+    colors:['#8a5c3d','#f0d4b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],'#3d5a6e');
       drawStripe(c,r,colors[1],0.5);
@@ -1496,44 +1515,44 @@ const SKINS = {
   },
   coralDust: {
     name:'Coral Dust', price:45,
-    colors:['#c98a7a','#f0d4c9'],
+    colors:['#8a5c1f','#f0d4a3'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   reedWalker: {
     name:'Reed Walker', price:52,
-    colors:['#6b8f5c','#c4d9a3'],
+    colors:['#1f5c5c','#a3d4d4'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   shaleFin: {
     name:'Shale Fin', price:58,
-    colors:['#5c6570','#a3adb8'],
+    colors:['#732a4a','#d973a8'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   muddyCurrent: {
     name:'Muddy Current', price:62,
-    colors:['#6b5a45','#a8967a'],
+    colors:['#3d5c8a','#b3d4f0'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   bayLeaf: {
     name:'Bay Leaf', price:68,
-    colors:['#4a7a4d','#a3c9a3'],
+    colors:['#3d8a5c','#b3f0d4'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   driftglass: {
     name:'Driftglass', price:72,
-    colors:['#7a9ab5','#d4e5f0'],
+    colors:['#6b8a3d','#c9e09a'],
     draw(c,r,tail,colors){
       c.save(); c.globalAlpha = 0.75; drawBasicFish(c,r,tail,colors[0],colors[1]); c.restore();
     }
   },
   palewater: {
     name:'Palewater', price:78,
-    colors:['#a3c4c9','#e5f0f2'],
+    colors:['#1f1f8a','#a3a3f0'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   copperReed: {
     name:'Copper Reed', price:85,
-    colors:['#b5713a','#d9c89a'],
+    colors:['#6b6b6b','#c9c9c9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.1,0.2]],0.06);
@@ -1541,17 +1560,17 @@ const SKINS = {
   },
   sunfaded: {
     name:'Sunfaded', price:92,
-    colors:['#c9a85a','#f0e3b8'],
+    colors:['#5c1f1f','#d4a3a3'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   twilightShoal: {
     name:'Twilight Shoal', price:98,
-    colors:['#4a4a6b','#9d9dc4'],
+    colors:['#4a4a2a','#c4c47a'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   coldwater: {
     name:'Coldwater', price:105,
-    colors:['#5c8aa3','#cfe5ee'],
+    colors:['#3d6b8a','#9ac9e0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.4);
@@ -1559,7 +1578,7 @@ const SKINS = {
   },
   mossback: {
     name:'Mossback', price:110,
-    colors:['#5c7a4a','#a8c48f'],
+    colors:['#1f8a3d','#a3f0b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.3,-0.1],[0.15,0.2]],0.06);
@@ -1567,7 +1586,7 @@ const SKINS = {
   },
   ashenTide: {
     name:'Ashen Tide', price:118,
-    colors:['#6b6b70','#c4c4c9'],
+    colors:['#8a1f5c','#f0a3d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -1575,7 +1594,7 @@ const SKINS = {
   },
   windward: {
     name:'Windward', price:128,
-    colors:['#4a7d8a','#9dd4e0'],
+    colors:['#6b3d8a','#c99ae0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.5);
@@ -1583,7 +1602,7 @@ const SKINS = {
   },
   silverline: {
     name:'Silverline', price:135,
-    colors:['#8a94a3','#e0e5eb'],
+    colors:['#5c1f8a','#d4a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.55);
@@ -1591,7 +1610,7 @@ const SKINS = {
   },
   duskwater: {
     name:'Duskwater', price:142,
-    colors:['#3d3d5c','#8a8ab5'],
+    colors:['#f0ece0','#ffffff'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.3,-0.15],[0.15,0.2],[-0.5,0.1]],0.06);
@@ -1599,7 +1618,7 @@ const SKINS = {
   },
   coralEmber: {
     name:'Coral Ember', price:148,
-    colors:['#c9573a','#f0a373'],
+    colors:['#2a2a2a','#7a7a7a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -1607,7 +1626,7 @@ const SKINS = {
   },
   northernPike: {
     name:'Northern Pike', price:160,
-    colors:['#4a6b4a','#9db58f'],
+    colors:['#8a3d1f','#f0b38a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.35,-0.1],[0.1,0.2],[-0.15,-0.28],[0.2,-0.1]],0.05);
@@ -1615,7 +1634,7 @@ const SKINS = {
   },
   marbledCurrent: {
     name:'Marbled Current', price:168,
-    colors:['#5c7d9e','#dce5f0'],
+    colors:['#8a6b3d','#e0c99a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.4);
@@ -1623,42 +1642,42 @@ const SKINS = {
   },
   crystalFin: {
     name:'Crystal Fin', price:178,
-    colors:['#7ab5c9','#e5f7fb'],
+    colors:['#3d4a4a','#a3c4c4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
     }
   },
   twilightPrism: {
     name:'Twilight Prism', price:188,
-    colors:['#4a3d7d','#b39de0'],
+    colors:['#2a4a73','#73a8d9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
     }
   },
   abyssalGlow: {
     name:'Abyssal Glow', price:198,
-    colors:['#0f1f2e','#3d8f8a'],
+    colors:['#4a2a73','#a873d9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
     }
   },
   radiantTide: {
     name:'Radiant Tide', price:210,
-    colors:['#2f9e7d','#8ae0c9'],
+    colors:['#2a4a4a','#7ac4c4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
     }
   },
   cometScale: {
     name:'Comet Scale', price:225,
-    colors:['#3d4a6b','#c9d4f0'],
+    colors:['#3d1f8a','#b3a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
     }
   },
   moltenCurrent: {
     name:'Molten Current', price:240,
-    colors:['#8f3d2f','#e88a4d'],
+    colors:['#4a4a3d','#c4c4a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.5);
@@ -1666,14 +1685,14 @@ const SKINS = {
   },
   frozenStar: {
     name:'Frozen Star', price:255,
-    colors:['#2f5c7d','#cfeaff'],
+    colors:['#8a3d5c','#f0b3d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
     }
   },
   twilightSovereign: {
     name:'Twilight Sovereign', price:270,
-    colors:['#3d2f5c','#c9a3e0'],
+    colors:['#5c8a3d','#d4f0b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -1681,7 +1700,7 @@ const SKINS = {
   },
   deepglowSovereign: {
     name:'Deepglow Sovereign', price:290,
-    colors:['#0a2a2e','#3dd9c4'],
+    colors:['#4a2a4a','#c47ac4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       c.save();
@@ -1699,7 +1718,7 @@ const SKINS = {
   },
   astralCurrent: {
     name:'Astral Current', price:600,
-    colors:['#1a0e2e','#f2895c'],
+    colors:['#2a734a','#73d9a8'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[1],'#d4c9ff');
@@ -1708,7 +1727,7 @@ const SKINS = {
   },
   titanCurrent: {
     name:'Titan Current', price:700,
-    colors:['#0e1a2e','#e05c5c'],
+    colors:['#1f5c8a','#a3d4f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],'#3d5a6e');
       drawStripe(c,r,colors[1],0.5);
@@ -1719,82 +1738,82 @@ const SKINS = {
   },
   mintwave: {
     name:'Mintwave', price:42,
-    colors:['#5c9e8a','#a8e0cc'],
+    colors:['#5c3d8a','#d4b3f0'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   duneglass: {
     name:'Duneglass', price:48,
-    colors:['#c9a873','#f0e0b8'],
+    colors:['#1f3d8a','#a3b3f0'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   slateReef: {
     name:'Slate Reef', price:55,
-    colors:['#5c6b73','#a3b3bc'],
+    colors:['#0a0a0a','#5c5c5c'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   rustyAnchor: {
     name:'Rusty Anchor', price:60,
-    colors:['#a35c3a','#dba384'],
+    colors:['#734a2a','#d9a873'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   foglight: {
     name:'Foglight', price:66,
-    colors:['#8a9ba3','#dbe5e8'],
+    colors:['#3d8a6b','#9ae0c9'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   paleKelp: {
     name:'Pale Kelp', price:70,
-    colors:['#7a9e6b','#c4dbb3'],
+    colors:['#4a732a','#a8d973'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   driftSand: {
     name:'Drift Sand', price:76,
-    colors:['#c9b58a','#f0e6cf'],
+    colors:['#1f8a5c','#a3f0d4'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   shallowBlue: {
     name:'Shallow Blue', price:82,
-    colors:['#4a7a9e','#a8cfe0'],
+    colors:['#4a3d4a','#c4a3c4'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   duskyReef: {
     name:'Dusky Reef', price:88,
-    colors:['#6b5c73','#a894b3'],
+    colors:['#8a5c5c','#f0d4d4'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   coveGrey: {
     name:'Cove Grey', price:95,
-    colors:['#6b747a','#aab3b8'],
+    colors:['#8a3d6b','#e09ac9'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   warmSand: {
     name:'Warm Sand', price:102,
-    colors:['#d9a85c','#f2dcac'],
+    colors:['#5c8a1f','#d4f0a3'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   mossyBank: {
     name:'Mossy Bank', price:110,
-    colors:['#5c7a4a','#a3c48a'],
+    colors:['#8a8a1f','#f0f0a3'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   brackenTide: {
     name:'Bracken Tide', price:118,
-    colors:['#7a6b4a','#c4b38a'],
+    colors:['#8a1f3d','#f0a3b3'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   paleAsh: {
     name:'Pale Ash', price:126,
-    colors:['#7a7a80','#c4c4cc'],
+    colors:['#3d8a1f','#b3f0a3'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   duskFin: {
     name:'Dusk Fin', price:134,
-    colors:['#5c5c73','#9d9db3'],
+    colors:['#8a5c3d','#f0d4b3'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   goldenReef: {
     name:'Golden Reef', price:142,
-    colors:['#c9a23d','#f0d98a'],
+    colors:['#8a5c1f','#f0d4a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -1802,7 +1821,7 @@ const SKINS = {
   },
   honeyCurrent: {
     name:'Honey Current', price:148,
-    colors:['#d9a83d','#f2dca3'],
+    colors:['#1f5c5c','#a3d4d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -1810,7 +1829,7 @@ const SKINS = {
   },
   sunlitFin: {
     name:'Sunlit Fin', price:155,
-    colors:['#c99a2f','#f0d478'],
+    colors:['#732a4a','#d973a8'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -1818,7 +1837,7 @@ const SKINS = {
   },
   brassTide: {
     name:'Brass Tide', price:162,
-    colors:['#b58a3d','#e0c383'],
+    colors:['#3d5c8a','#b3d4f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -1826,7 +1845,7 @@ const SKINS = {
   },
   amberGlint: {
     name:'Amber Glint', price:168,
-    colors:['#c98a2f','#e8b85c'],
+    colors:['#3d8a5c','#b3f0d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -1834,7 +1853,7 @@ const SKINS = {
   },
   goldstreak: {
     name:'Goldstreak', price:175,
-    colors:['#d9b03d','#f5e0a3'],
+    colors:['#6b8a3d','#c9e09a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -1842,7 +1861,7 @@ const SKINS = {
   },
   daffodilFin: {
     name:'Daffodil Fin', price:182,
-    colors:['#d9c93d','#f5eea3'],
+    colors:['#1f1f8a','#a3a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -1850,7 +1869,7 @@ const SKINS = {
   },
   sunbeam: {
     name:'Sunbeam', price:188,
-    colors:['#e0c94d','#f7ecac'],
+    colors:['#6b6b6b','#c9c9c9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -1858,7 +1877,7 @@ const SKINS = {
   },
   marigold: {
     name:'Marigold', price:195,
-    colors:['#e0a83d','#f2d18a'],
+    colors:['#5c1f1f','#d4a3a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -1866,7 +1885,7 @@ const SKINS = {
   },
   goldenScaleII: {
     name:'Golden Scale II', price:200,
-    colors:['#d4b23d','#f0dc9a'],
+    colors:['#4a4a2a','#c4c47a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -1874,7 +1893,7 @@ const SKINS = {
   },
   goldshine: {
     name:'Goldshine', price:204,
-    colors:['#dbb840','#f5e2a8'],
+    colors:['#3d6b8a','#9ac9e0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -1882,7 +1901,7 @@ const SKINS = {
   },
   citrineTide: {
     name:'Citrine Tide', price:208,
-    colors:['#d4c23d','#f0e6a3'],
+    colors:['#1f8a3d','#a3f0b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -1890,7 +1909,7 @@ const SKINS = {
   },
   honeyglass: {
     name:'Honeyglass', price:211,
-    colors:['#c9a83d','#eed99c'],
+    colors:['#8a1f5c','#f0a3d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -1898,7 +1917,7 @@ const SKINS = {
   },
   sunfin: {
     name:'Sunfin', price:214,
-    colors:['#d9b53d','#f2dfa3'],
+    colors:['#6b3d8a','#c99ae0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -1906,7 +1925,7 @@ const SKINS = {
   },
   topazCurrent: {
     name:'Topaz Current', price:218,
-    colors:['#c9a23d','#e8c96b'],
+    colors:['#5c1f8a','#d4a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -1914,7 +1933,7 @@ const SKINS = {
   },
   amethystTide: {
     name:'Amethyst Tide', price:222,
-    colors:['#6b4a9e','#b39ddb'],
+    colors:['#f0ece0','#ffffff'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -1922,7 +1941,7 @@ const SKINS = {
   },
   violetCurrent: {
     name:'Violet Current', price:230,
-    colors:['#5c3d8a','#a389c9'],
+    colors:['#2a2a2a','#7a7a7a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -1930,7 +1949,7 @@ const SKINS = {
   },
   lilacDeep: {
     name:'Lilac Deep', price:238,
-    colors:['#7a5ca3','#c4aee0'],
+    colors:['#8a3d1f','#f0b38a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -1938,7 +1957,7 @@ const SKINS = {
   },
   plumFin: {
     name:'Plum Fin', price:246,
-    colors:['#5c3a6b','#9d7aad'],
+    colors:['#8a6b3d','#e0c99a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -1946,7 +1965,7 @@ const SKINS = {
   },
   mauveGlow: {
     name:'Mauve Glow', price:254,
-    colors:['#6b4a7d','#ae8ac4'],
+    colors:['#3d4a4a','#a3c4c4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -1954,7 +1973,7 @@ const SKINS = {
   },
   orchidTide: {
     name:'Orchid Tide', price:262,
-    colors:['#7d4a9e','#c49ddb'],
+    colors:['#2a4a73','#73a8d9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -1962,7 +1981,7 @@ const SKINS = {
   },
   grapeCurrent: {
     name:'Grape Current', price:270,
-    colors:['#5c3373','#9d6bb5'],
+    colors:['#4a2a73','#a873d9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -1970,7 +1989,7 @@ const SKINS = {
   },
   wisteria: {
     name:'Wisteria', price:276,
-    colors:['#6b5299','#ae94d4'],
+    colors:['#2a4a4a','#7ac4c4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -1978,7 +1997,7 @@ const SKINS = {
   },
   indigoDepths: {
     name:'Indigo Depths', price:282,
-    colors:['#4a3373','#8a6bb5'],
+    colors:['#3d1f8a','#b3a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -1986,7 +2005,7 @@ const SKINS = {
   },
   violetDusk: {
     name:'Violet Dusk', price:288,
-    colors:['#5c3d8f','#a389d4'],
+    colors:['#4a4a3d','#c4c4a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -1994,7 +2013,7 @@ const SKINS = {
   },
   purpleReef: {
     name:'Purple Reef', price:292,
-    colors:['#6b3d8a','#b38ad4'],
+    colors:['#8a3d5c','#f0b3d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2002,7 +2021,7 @@ const SKINS = {
   },
   amethystShoal: {
     name:'Amethyst Shoal', price:298,
-    colors:['#5c2f7a','#9d6bc4'],
+    colors:['#5c8a3d','#d4f0b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2010,7 +2029,7 @@ const SKINS = {
   },
   bloodtide: {
     name:'Bloodtide', price:520,
-    colors:['#2e0e1a','#f0a23d'],
+    colors:['#4a2a4a','#c47ac4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawHorns(c,r,colors[1]);
@@ -2019,7 +2038,7 @@ const SKINS = {
   },
   crimsonAbyss: {
     name:'Crimson Abyss', price:540,
-    colors:['#141414','#b52f2f'],
+    colors:['#2a734a','#73d9a8'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2028,7 +2047,7 @@ const SKINS = {
   },
   scarletCurrent: {
     name:'Scarlet Current', price:565,
-    colors:['#1a2e2e','#e8735c'],
+    colors:['#1f5c8a','#a3d4f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2038,7 +2057,7 @@ const SKINS = {
   },
   garnetFin: {
     name:'Garnet Fin', price:585,
-    colors:['#2e2e0e','#d9524d'],
+    colors:['#5c3d8a','#d4b3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2047,7 +2066,7 @@ const SKINS = {
   },
   rubyDepths: {
     name:'Ruby Depths', price:620,
-    colors:['#0e0e14','#c93d3d'],
+    colors:['#1f3d8a','#a3b3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.5);
@@ -2057,7 +2076,7 @@ const SKINS = {
   },
   bloodmoon: {
     name:'Bloodmoon', price:660,
-    colors:['#1a2e1a','#d9524d'],
+    colors:['#0a0a0a','#5c5c5c'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2067,7 +2086,7 @@ const SKINS = {
   },
   crimsonSovereign: {
     name:'Crimson Sovereign', price:720,
-    colors:['#1a1a3d','#e05c5c'],
+    colors:['#734a2a','#d9a873'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2077,7 +2096,7 @@ const SKINS = {
   },
   bloodReaper: {
     name:'Blood Reaper', price:780,
-    colors:['#2e1a0e','#e8895c'],
+    colors:['#3d8a6b','#9ae0c9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2088,12 +2107,12 @@ const SKINS = {
   },
   cobbleReef: {
     name:'Cobble Reef', price:44,
-    colors:['#7a8a8f','#b8c4c9'],
+    colors:['#4a732a','#a8d973'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   pebbleTide: {
     name:'Pebble Tide', price:48,
-    colors:['#9e8a73','#dccbb0'],
+    colors:['#1f8a5c','#a3f0d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2101,7 +2120,7 @@ const SKINS = {
   },
   clayFin: {
     name:'Clay Fin', price:52,
-    colors:['#a8724a','#dbb08a'],
+    colors:['#4a3d4a','#c4a3c4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2109,12 +2128,12 @@ const SKINS = {
   },
   bogwater: {
     name:'Bogwater', price:56,
-    colors:['#5c6b4a','#a3b38a'],
+    colors:['#8a5c5c','#f0d4d4'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   flintstream: {
     name:'Flintstream', price:60,
-    colors:['#5c5c5c','#a3a3a3'],
+    colors:['#8a3d6b','#e09ac9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2122,7 +2141,7 @@ const SKINS = {
   },
   willowShoal: {
     name:'Willow Shoal', price:64,
-    colors:['#6b8a5c','#b3d4a3'],
+    colors:['#5c8a1f','#d4f0a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2130,12 +2149,12 @@ const SKINS = {
   },
   sedgeReed: {
     name:'Sedge Reed', price:68,
-    colors:['#8a9e5c','#cfe0a3'],
+    colors:['#8a8a1f','#f0f0a3'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   graniteCurrent: {
     name:'Granite Current', price:72,
-    colors:['#6b6b73','#aaaab5'],
+    colors:['#8a1f3d','#f0a3b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2143,7 +2162,7 @@ const SKINS = {
   },
   birchBank: {
     name:'Birch Bank', price:77,
-    colors:['#c9c0a8','#f0ecdb'],
+    colors:['#3d8a1f','#b3f0a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2151,12 +2170,12 @@ const SKINS = {
   },
   lowTide: {
     name:'Low Tide', price:82,
-    colors:['#7a9e9e','#b8dbdb'],
+    colors:['#8a5c3d','#f0d4b3'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   duneReef2: {
     name:'Dune Reef', price:87,
-    colors:['#c9a35c','#f0d69e'],
+    colors:['#8a5c1f','#f0d4a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2164,7 +2183,7 @@ const SKINS = {
   },
   mistbank: {
     name:'Mistbank', price:92,
-    colors:['#8f9ea3','#d4e0e3'],
+    colors:['#1f5c5c','#a3d4d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2172,12 +2191,12 @@ const SKINS = {
   },
   quietCove: {
     name:'Quiet Cove', price:98,
-    colors:['#5c7a7a','#a3c4c4'],
+    colors:['#732a4a','#d973a8'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   pineShoal: {
     name:'Pine Shoal', price:104,
-    colors:['#3d5c3d','#8ab38a'],
+    colors:['#3d5c8a','#b3d4f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2185,7 +2204,7 @@ const SKINS = {
   },
   softClay: {
     name:'Soft Clay', price:110,
-    colors:['#b58a6b','#e0c4ab'],
+    colors:['#3d8a5c','#b3f0d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2193,12 +2212,12 @@ const SKINS = {
   },
   driftpine: {
     name:'Driftpine', price:116,
-    colors:['#4a5c4a','#8fad8f'],
+    colors:['#6b8a3d','#c9e09a'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   hazyBank: {
     name:'Hazy Bank', price:122,
-    colors:['#8a8f9e','#c9cfdb'],
+    colors:['#1f1f8a','#a3a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2206,7 +2225,7 @@ const SKINS = {
   },
   slatewash: {
     name:'Slatewash', price:128,
-    colors:['#5c656b','#a3adb3'],
+    colors:['#6b6b6b','#c9c9c9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2214,12 +2233,12 @@ const SKINS = {
   },
   tanbark: {
     name:'Tanbark', price:133,
-    colors:['#8f6b4a','#c9a883'],
+    colors:['#5c1f1f','#d4a3a3'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   paleReed: {
     name:'Pale Reed', price:138,
-    colors:['#a3ad8a','#dbe0c4'],
+    colors:['#4a4a2a','#c4c47a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2227,7 +2246,7 @@ const SKINS = {
   },
   sunriseFin: {
     name:'Sunrise Fin', price:144,
-    colors:['#d9a83d','#f2d68a'],
+    colors:['#3d6b8a','#9ac9e0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2235,7 +2254,7 @@ const SKINS = {
   },
   golddust: {
     name:'Golddust', price:150,
-    colors:['#c99a2f','#e8c273'],
+    colors:['#1f8a3d','#a3f0b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2243,7 +2262,7 @@ const SKINS = {
   },
   amberFlare: {
     name:'Amber Flare', price:156,
-    colors:['#d4913d','#f0c48a'],
+    colors:['#8a1f5c','#f0a3d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2251,7 +2270,7 @@ const SKINS = {
   },
   honeycomb: {
     name:'Honeycomb', price:162,
-    colors:['#e0b03d','#f5dc9e'],
+    colors:['#6b3d8a','#c99ae0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2259,7 +2278,7 @@ const SKINS = {
   },
   daffodilCurrent: {
     name:'Daffodil Current', price:168,
-    colors:['#d9c93d','#f2e69e'],
+    colors:['#5c1f8a','#d4a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2267,7 +2286,7 @@ const SKINS = {
   },
   sunspot: {
     name:'Sunspot', price:174,
-    colors:['#dbb840','#f5e0a3'],
+    colors:['#f0ece0','#ffffff'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2275,7 +2294,7 @@ const SKINS = {
   },
   goldenHaze: {
     name:'Golden Haze', price:179,
-    colors:['#c9a23d','#e8cb7d'],
+    colors:['#2a2a2a','#7a7a7a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2283,7 +2302,7 @@ const SKINS = {
   },
   brasstide: {
     name:'Brasstide', price:184,
-    colors:['#b58a3d','#e0c283'],
+    colors:['#8a3d1f','#f0b38a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2291,7 +2310,7 @@ const SKINS = {
   },
   citronScale: {
     name:'Citron Scale', price:189,
-    colors:['#d4c23d','#f0e6a3'],
+    colors:['#8a6b3d','#e0c99a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2299,7 +2318,7 @@ const SKINS = {
   },
   sandGold: {
     name:'Sand Gold', price:193,
-    colors:['#d9b354','#f2ddb0'],
+    colors:['#3d4a4a','#a3c4c4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2307,7 +2326,7 @@ const SKINS = {
   },
   marigoldTide: {
     name:'Marigold Tide', price:197,
-    colors:['#e0a83d','#f2d18a'],
+    colors:['#2a4a73','#73a8d9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2315,7 +2334,7 @@ const SKINS = {
   },
   goldenCurrent: {
     name:'Golden Current', price:201,
-    colors:['#c9a23d','#e8c96b'],
+    colors:['#4a2a73','#a873d9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2323,7 +2342,7 @@ const SKINS = {
   },
   sunlitScale: {
     name:'Sunlit Scale', price:205,
-    colors:['#dbb840','#f5e2a8'],
+    colors:['#2a4a4a','#7ac4c4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2331,7 +2350,7 @@ const SKINS = {
   },
   topazFlare: {
     name:'Topaz Flare', price:208,
-    colors:['#c9a23d','#e8c96b'],
+    colors:['#3d1f8a','#b3a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2339,7 +2358,7 @@ const SKINS = {
   },
   honeyGlow: {
     name:'Honey Glow', price:211,
-    colors:['#d9a83d','#f2dca3'],
+    colors:['#4a4a3d','#c4c4a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2347,7 +2366,7 @@ const SKINS = {
   },
   goldStreamer: {
     name:'Gold Streamer', price:214,
-    colors:['#e0c94d','#f7ecac'],
+    colors:['#8a3d5c','#f0b3d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2355,7 +2374,7 @@ const SKINS = {
   },
   brightAmber: {
     name:'Bright Amber', price:216,
-    colors:['#d4913d','#f0c48a'],
+    colors:['#5c8a3d','#d4f0b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2363,7 +2382,7 @@ const SKINS = {
   },
   gildedFin: {
     name:'Gilded Fin', price:218,
-    colors:['#c9a23d','#e8c96b'],
+    colors:['#4a2a4a','#c47ac4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2371,7 +2390,7 @@ const SKINS = {
   },
   daybreak: {
     name:'Daybreak', price:219,
-    colors:['#d9b03d','#f5e0a3'],
+    colors:['#2a734a','#73d9a8'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2379,7 +2398,7 @@ const SKINS = {
   },
   sunkissed: {
     name:'Sunkissed', price:220,
-    colors:['#e0c04d','#f7e6ac'],
+    colors:['#1f5c8a','#a3d4f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2387,7 +2406,7 @@ const SKINS = {
   },
   lavenderTide: {
     name:'Lavender Tide', price:224,
-    colors:['#8a6bb5','#c4aee0'],
+    colors:['#5c3d8a','#d4b3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2395,7 +2414,7 @@ const SKINS = {
   },
   violetCove: {
     name:'Violet Cove', price:230,
-    colors:['#6b4a99','#ae8ac4'],
+    colors:['#1f3d8a','#a3b3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2403,7 +2422,7 @@ const SKINS = {
   },
   purpleDusk: {
     name:'Purple Dusk', price:236,
-    colors:['#5c3d8a','#9d7aad'],
+    colors:['#0a0a0a','#5c5c5c'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2411,7 +2430,7 @@ const SKINS = {
   },
   irisFin: {
     name:'Iris Fin', price:242,
-    colors:['#7a52a3','#c49ddb'],
+    colors:['#734a2a','#d9a873'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2419,7 +2438,7 @@ const SKINS = {
   },
   mauveDepths: {
     name:'Mauve Depths', price:248,
-    colors:['#6b4a7d','#ae8ac4'],
+    colors:['#3d8a6b','#9ae0c9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2427,7 +2446,7 @@ const SKINS = {
   },
   grapeGlow: {
     name:'Grape Glow', price:254,
-    colors:['#5c3373','#9d6bb5'],
+    colors:['#4a732a','#a8d973'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2435,7 +2454,7 @@ const SKINS = {
   },
   plumTide: {
     name:'Plum Tide', price:260,
-    colors:['#5c3a6b','#9d7aad'],
+    colors:['#1f8a5c','#a3f0d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2443,7 +2462,7 @@ const SKINS = {
   },
   violetHaze: {
     name:'Violet Haze', price:266,
-    colors:['#6b529e','#ae94d4'],
+    colors:['#4a3d4a','#c4a3c4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2451,7 +2470,7 @@ const SKINS = {
   },
   orchidGlow: {
     name:'Orchid Glow', price:272,
-    colors:['#7d4a9e','#c49ddb'],
+    colors:['#8a5c5c','#f0d4d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2459,7 +2478,7 @@ const SKINS = {
   },
   wisteriaCurrent: {
     name:'Wisteria Current', price:278,
-    colors:['#6b5299','#ae94d4'],
+    colors:['#8a3d6b','#e09ac9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2467,7 +2486,7 @@ const SKINS = {
   },
   amethystFlare: {
     name:'Amethyst Flare', price:283,
-    colors:['#6b4a9e','#b39ddb'],
+    colors:['#5c8a1f','#d4f0a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2475,7 +2494,7 @@ const SKINS = {
   },
   indigoTide: {
     name:'Indigo Tide', price:288,
-    colors:['#4a3373','#8a6bb5'],
+    colors:['#8a8a1f','#f0f0a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2483,7 +2502,7 @@ const SKINS = {
   },
   lilacFin: {
     name:'Lilac Fin', price:292,
-    colors:['#7a5ca3','#c4aee0'],
+    colors:['#8a1f3d','#f0a3b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2491,7 +2510,7 @@ const SKINS = {
   },
   purpleReefII: {
     name:'Purple Reef II', price:295,
-    colors:['#6b3d8a','#b38ad4'],
+    colors:['#3d8a1f','#b3f0a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2499,7 +2518,7 @@ const SKINS = {
   },
   violetSovereign: {
     name:'Violet Sovereign', price:298,
-    colors:['#5c2f7a','#9d6bc4'],
+    colors:['#8a5c3d','#f0d4b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2507,7 +2526,7 @@ const SKINS = {
   },
   mysticGlow: {
     name:'Mystic Glow', price:300,
-    colors:['#5c3d8f','#a389d4'],
+    colors:['#8a5c1f','#f0d4a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2515,7 +2534,7 @@ const SKINS = {
   },
   duskAmethyst: {
     name:'Dusk Amethyst', price:305,
-    colors:['#6b4a9e','#b39ddb'],
+    colors:['#1f5c5c','#a3d4d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2523,7 +2542,7 @@ const SKINS = {
   },
   nightOrchid: {
     name:'Night Orchid', price:310,
-    colors:['#5c3373','#9d6bb5'],
+    colors:['#732a4a','#d973a8'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2531,7 +2550,7 @@ const SKINS = {
   },
   royalTide: {
     name:'Royal Tide', price:315,
-    colors:['#4a3373','#8a6bb5'],
+    colors:['#3d5c8a','#b3d4f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2539,7 +2558,7 @@ const SKINS = {
   },
   violetSpecter: {
     name:'Violet Specter', price:320,
-    colors:['#6b529e','#ae94d4'],
+    colors:['#3d8a5c','#b3f0d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2547,7 +2566,7 @@ const SKINS = {
   },
   seraphFin: {
     name:'Seraph Fin', price:505,
-    colors:['#0e2e2e','#d9524d'],
+    colors:['#6b8a3d','#c9e09a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -2555,7 +2574,7 @@ const SKINS = {
   },
   infernoAngel: {
     name:'Inferno Angel', price:515,
-    colors:['#3d3d3d','#c93d3d'],
+    colors:['#1f1f8a','#a3a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -2564,7 +2583,7 @@ const SKINS = {
   },
   bloodPhoenix: {
     name:'Blood Phoenix', price:528,
-    colors:['#1a0e2e','#f2895c'],
+    colors:['#6b6b6b','#c9c9c9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -2573,7 +2592,7 @@ const SKINS = {
   },
   fallenSeraph: {
     name:'Fallen Seraph', price:540,
-    colors:['#0e1a2e','#e05c5c'],
+    colors:['#5c1f1f','#d4a3a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -2582,7 +2601,7 @@ const SKINS = {
   },
   crimsonArchon: {
     name:'Crimson Archon', price:555,
-    colors:['#2e0e1a','#f0a23d'],
+    colors:['#4a4a2a','#c4c47a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -2590,7 +2609,7 @@ const SKINS = {
   },
   demonTideII: {
     name:'Demon Tide II', price:570,
-    colors:['#141414','#b52f2f'],
+    colors:['#3d6b8a','#9ac9e0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawHorns(c,r,colors[1]);
@@ -2598,7 +2617,7 @@ const SKINS = {
   },
   gorgonScale: {
     name:'Gorgon Scale', price:585,
-    colors:['#1a2e2e','#e8735c'],
+    colors:['#1f8a3d','#a3f0b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawHorns(c,r,colors[1]);
@@ -2607,7 +2626,7 @@ const SKINS = {
   },
   bansheeFin: {
     name:'Banshee Fin', price:600,
-    colors:['#2e2e0e','#d9524d'],
+    colors:['#8a1f5c','#f0a3d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -2616,7 +2635,7 @@ const SKINS = {
   },
   vampireCurrent: {
     name:'Vampire Current', price:615,
-    colors:['#0e0e14','#c93d3d'],
+    colors:['#6b3d8a','#c99ae0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -2625,7 +2644,7 @@ const SKINS = {
   },
   hellfireKoi: {
     name:'Hellfire Koi', price:630,
-    colors:['#1a2e1a','#d9524d'],
+    colors:['#5c1f8a','#d4a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawEmberTrail(c,r,tail,colors[1]);
@@ -2633,7 +2652,7 @@ const SKINS = {
   },
   reaperWing: {
     name:'Reaper Wing', price:645,
-    colors:['#1a1a3d','#e05c5c'],
+    colors:['#f0ece0','#ffffff'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -2641,7 +2660,7 @@ const SKINS = {
   },
   cardinalSovereign: {
     name:'Cardinal Sovereign', price:660,
-    colors:['#2e1a0e','#e8895c'],
+    colors:['#2a2a2a','#7a7a7a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -2650,7 +2669,7 @@ const SKINS = {
   },
   bloodSeraphim: {
     name:'Blood Seraphim', price:680,
-    colors:['#0e2e2e','#d9524d'],
+    colors:['#8a3d1f','#f0b38a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -2659,7 +2678,7 @@ const SKINS = {
   },
   scarletArchdemon: {
     name:'Scarlet Archdemon', price:700,
-    colors:['#3d3d3d','#c93d3d'],
+    colors:['#8a6b3d','#e0c99a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawHorns(c,r,colors[1]);
@@ -2668,7 +2687,7 @@ const SKINS = {
   },
   emberSeraph: {
     name:'Ember Seraph', price:720,
-    colors:['#1a0e2e','#f2895c'],
+    colors:['#3d4a4a','#a3c4c4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -2678,7 +2697,7 @@ const SKINS = {
   },
   bloodTitan: {
     name:'Blood Titan', price:740,
-    colors:['#0e1a2e','#e05c5c'],
+    colors:['#2a4a73','#73a8d9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -2687,7 +2706,7 @@ const SKINS = {
   },
   infernalKoi: {
     name:'Infernal Koi', price:760,
-    colors:['#2e0e1a','#f0a23d'],
+    colors:['#4a2a73','#a873d9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -2696,7 +2715,7 @@ const SKINS = {
   },
   crimsonPhoenix: {
     name:'Crimson Phoenix', price:780,
-    colors:['#141414','#b52f2f'],
+    colors:['#2a4a4a','#7ac4c4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -2706,7 +2725,7 @@ const SKINS = {
   },
   doombringer: {
     name:'Doombringer', price:800,
-    colors:['#1a2e2e','#e8735c'],
+    colors:['#3d1f8a','#b3a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -2716,7 +2735,7 @@ const SKINS = {
   },
   apexBloodwing: {
     name:'Apex Bloodwing', price:850,
-    colors:['#2e2e0e','#d9524d'],
+    colors:['#4a4a3d','#c4c4a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -2726,107 +2745,107 @@ const SKINS = {
   },
   coveMist: {
     name:'Cove Mist', price:44,
-    colors:['#7a94a3','#c4d4dc'],
+    colors:['#8a3d5c','#f0b3d4'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   reedShade: {
     name:'Reed Shade', price:50,
-    colors:['#5c7a5c','#a8c4a3'],
+    colors:['#5c8a3d','#d4f0b3'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   duneAsh: {
     name:'Dune Ash', price:56,
-    colors:['#a89473','#e0d4b8'],
+    colors:['#4a2a4a','#c47ac4'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   graniteFin: {
     name:'Granite Fin', price:62,
-    colors:['#6b6b73','#a8a8b3'],
+    colors:['#2a734a','#73d9a8'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   willowTide: {
     name:'Willow Tide', price:68,
-    colors:['#6b8a5c','#b3d4a3'],
+    colors:['#1f5c8a','#a3d4f0'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   claybank: {
     name:'Claybank', price:74,
-    colors:['#a3714a','#dcb894'],
+    colors:['#5c3d8a','#d4b3f0'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   fogbank: {
     name:'Fogbank', price:80,
-    colors:['#8494a3','#d0dbe5'],
+    colors:['#1f3d8a','#a3b3f0'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   mireWater: {
     name:'Mire Water', price:86,
-    colors:['#5c6b4a','#a3b38a'],
+    colors:['#0a0a0a','#5c5c5c'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   paleCurrent: {
     name:'Pale Current', price:92,
-    colors:['#94a8ad','#d4e5e8'],
+    colors:['#734a2a','#d9a873'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   sandyRipple: {
     name:'Sandy Ripple', price:98,
-    colors:['#c9ad7a','#f0e0bc'],
+    colors:['#3d8a6b','#9ae0c9'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   slatewashII: {
     name:'Slatewash', price:104,
-    colors:['#5c6873','#a3b0bc'],
+    colors:['#4a732a','#a8d973'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   mossGlint: {
     name:'Moss Glint', price:108,
-    colors:['#5c8a4a','#a8d494'],
+    colors:['#1f8a5c','#a3f0d4'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   duskbank: {
     name:'Duskbank', price:112,
-    colors:['#5c5c73','#9d9db3'],
+    colors:['#4a3d4a','#c4a3c4'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   paleReedII: {
     name:'Pale Reed', price:116,
-    colors:['#8a9e73','#d4e0bc'],
+    colors:['#8a5c5c','#f0d4d4'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   coppervein: {
     name:'Coppervein', price:120,
-    colors:['#a86b3d','#dcb083'],
+    colors:['#8a3d6b','#e09ac9'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   stonewash: {
     name:'Stonewash', price:124,
-    colors:['#7a848a','#c4ccd0'],
+    colors:['#5c8a1f','#d4f0a3'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   brackishGlow: {
     name:'Brackish Glow', price:128,
-    colors:['#6b7d5c','#a8c494'],
+    colors:['#8a8a1f','#f0f0a3'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   grayling: {
     name:'Grayling', price:131,
-    colors:['#7a828a','#c4ccd2'],
+    colors:['#8a1f3d','#f0a3b3'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   duskyClaw: {
     name:'Dusky Claw', price:134,
-    colors:['#6b5c52','#ad9a8a'],
+    colors:['#3d8a1f','#b3f0a3'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   mistyReef: {
     name:'Misty Reef', price:137,
-    colors:['#7a94a8','#c9dce5'],
+    colors:['#8a5c3d','#f0d4b3'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   gildedTide: {
     name:'Gilded Tide', price:141,
-    colors:['#c9a23d','#f0d98a'],
+    colors:['#8a5c1f','#f0d4a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2834,7 +2853,7 @@ const SKINS = {
   },
   sunlitScaleII: {
     name:'Sunlit Scale', price:146,
-    colors:['#d9b03d','#f5e0a3'],
+    colors:['#1f5c5c','#a3d4d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2842,7 +2861,7 @@ const SKINS = {
   },
   brasswave: {
     name:'Brasswave', price:151,
-    colors:['#b58a3d','#e0c383'],
+    colors:['#732a4a','#d973a8'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2850,7 +2869,7 @@ const SKINS = {
   },
   honeycombII: {
     name:'Honeycomb', price:156,
-    colors:['#d4a83d','#f2dc9a'],
+    colors:['#3d5c8a','#b3d4f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2858,7 +2877,7 @@ const SKINS = {
   },
   goldfinch: {
     name:'Goldfinch', price:160,
-    colors:['#dbb840','#f5e2a8'],
+    colors:['#3d8a5c','#b3f0d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2866,7 +2885,7 @@ const SKINS = {
   },
   daffodilTide: {
     name:'Daffodil Tide', price:165,
-    colors:['#d9c93d','#f5eea3'],
+    colors:['#6b8a3d','#c9e09a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2874,7 +2893,7 @@ const SKINS = {
   },
   amberReef: {
     name:'Amber Reef', price:170,
-    colors:['#c98a2f','#e8b85c'],
+    colors:['#1f1f8a','#a3a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2882,7 +2901,7 @@ const SKINS = {
   },
   goldstream: {
     name:'Goldstream', price:176,
-    colors:['#e0c94d','#f7ecac'],
+    colors:['#6b6b6b','#c9c9c9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2890,7 +2909,7 @@ const SKINS = {
   },
   marigoldFin: {
     name:'Marigold Fin', price:181,
-    colors:['#e0a83d','#f2d18a'],
+    colors:['#5c1f1f','#d4a3a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2898,7 +2917,7 @@ const SKINS = {
   },
   sunfishScale: {
     name:'Sunfish Scale', price:186,
-    colors:['#d4b23d','#f0dc9a'],
+    colors:['#4a4a2a','#c4c47a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2906,7 +2925,7 @@ const SKINS = {
   },
   brasscurrent: {
     name:'Brasscurrent', price:191,
-    colors:['#c9a23d','#e8c96b'],
+    colors:['#3d6b8a','#9ac9e0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2914,7 +2933,7 @@ const SKINS = {
   },
   citrineFin: {
     name:'Citrine Fin', price:196,
-    colors:['#d4c23d','#f0e6a3'],
+    colors:['#1f8a3d','#a3f0b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2922,7 +2941,7 @@ const SKINS = {
   },
   honeyfin: {
     name:'Honeyfin', price:200,
-    colors:['#c9a83d','#eed99c'],
+    colors:['#8a1f5c','#f0a3d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2930,7 +2949,7 @@ const SKINS = {
   },
   topazTide: {
     name:'Topaz Tide', price:203,
-    colors:['#d9b53d','#f2dfa3'],
+    colors:['#6b3d8a','#c99ae0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2938,7 +2957,7 @@ const SKINS = {
   },
   goldwake: {
     name:'Goldwake', price:206,
-    colors:['#dbb840','#f5e2a8'],
+    colors:['#5c1f8a','#d4a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2946,7 +2965,7 @@ const SKINS = {
   },
   sunkissedII: {
     name:'Sunkissed', price:209,
-    colors:['#e0c94d','#f7ecac'],
+    colors:['#f0ece0','#ffffff'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2954,7 +2973,7 @@ const SKINS = {
   },
   goldenPike: {
     name:'Golden Pike', price:211,
-    colors:['#c9a23d','#5c6b4a'],
+    colors:['#2a2a2a','#7a7a7a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2962,7 +2981,7 @@ const SKINS = {
   },
   imperialGold: {
     name:'Imperial Gold', price:213,
-    colors:['#d4b23d','#3d3d4a'],
+    colors:['#8a3d1f','#f0b38a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2970,7 +2989,7 @@ const SKINS = {
   },
   gildedKoi: {
     name:'Gilded Koi', price:215,
-    colors:['#f2ede0','#c9a23d'],
+    colors:['#8a6b3d','#e0c99a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2978,7 +2997,7 @@ const SKINS = {
   },
   sunspotFin: {
     name:'Sunspot Fin', price:218,
-    colors:['#e0c94d','#8a6b2f'],
+    colors:['#3d4a4a','#a3c4c4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -2986,7 +3005,7 @@ const SKINS = {
   },
   lavenderTideII: {
     name:'Lavender Tide', price:224,
-    colors:['#8a6bb5','#d4c4ec'],
+    colors:['#2a4a73','#73a8d9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -2994,7 +3013,7 @@ const SKINS = {
   },
   violetCascade: {
     name:'Violet Cascade', price:232,
-    colors:['#6b4a9e','#b39ddb'],
+    colors:['#4a2a73','#a873d9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3002,7 +3021,7 @@ const SKINS = {
   },
   mauveCurrent: {
     name:'Mauve Current', price:240,
-    colors:['#7a5ca3','#c4aee0'],
+    colors:['#2a4a4a','#7ac4c4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3010,7 +3029,7 @@ const SKINS = {
   },
   plumTideII: {
     name:'Plum Tide', price:248,
-    colors:['#5c3a6b','#9d7aad'],
+    colors:['#3d1f8a','#b3a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3018,7 +3037,7 @@ const SKINS = {
   },
   orchidFin: {
     name:'Orchid Fin', price:256,
-    colors:['#7d4a9e','#c49ddb'],
+    colors:['#4a4a3d','#c4c4a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3026,7 +3045,7 @@ const SKINS = {
   },
   grapeScale: {
     name:'Grape Scale', price:264,
-    colors:['#5c3373','#9d6bb5'],
+    colors:['#8a3d5c','#f0b3d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3034,7 +3053,7 @@ const SKINS = {
   },
   wisteriaFin: {
     name:'Wisteria Fin', price:272,
-    colors:['#6b5299','#ae94d4'],
+    colors:['#5c8a3d','#d4f0b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3042,7 +3061,7 @@ const SKINS = {
   },
   indigoTideII: {
     name:'Indigo Tide', price:280,
-    colors:['#4a3373','#8a6bb5'],
+    colors:['#4a2a4a','#c47ac4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3050,7 +3069,7 @@ const SKINS = {
   },
   violetSpray: {
     name:'Violet Spray', price:288,
-    colors:['#5c3d8f','#a389d4'],
+    colors:['#2a734a','#73d9a8'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3058,7 +3077,7 @@ const SKINS = {
   },
   purpleCurrent: {
     name:'Purple Current', price:296,
-    colors:['#6b3d8a','#b38ad4'],
+    colors:['#1f5c8a','#a3d4f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3066,7 +3085,7 @@ const SKINS = {
   },
   amethystShallows: {
     name:'Amethyst Shallows', price:304,
-    colors:['#5c2f7a','#9d6bc4'],
+    colors:['#5c3d8a','#d4b3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3074,7 +3093,7 @@ const SKINS = {
   },
   twilightViolet: {
     name:'Twilight Violet', price:312,
-    colors:['#4a2f6b','#8f6bb5'],
+    colors:['#1f3d8a','#a3b3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3082,7 +3101,7 @@ const SKINS = {
   },
   lilacWave: {
     name:'Lilac Wave', price:320,
-    colors:['#6b4a8a','#b39dcc'],
+    colors:['#0a0a0a','#5c5c5c'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3090,7 +3109,7 @@ const SKINS = {
   },
   deepAmethyst: {
     name:'Deep Amethyst', price:330,
-    colors:['#3d1f5c','#7a4a9e'],
+    colors:['#734a2a','#d9a873'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3098,7 +3117,7 @@ const SKINS = {
   },
   mysticOrchid: {
     name:'Mystic Orchid', price:345,
-    colors:['#5c3373','#a374d9'],
+    colors:['#3d8a6b','#9ae0c9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3106,7 +3125,7 @@ const SKINS = {
   },
   shadowViolet: {
     name:'Shadow Violet', price:365,
-    colors:['#2f1a4a','#6b4a8a'],
+    colors:['#4a732a','#a8d973'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3114,7 +3133,7 @@ const SKINS = {
   },
   royalAmethyst: {
     name:'Royal Amethyst', price:390,
-    colors:['#4a2f6b','#a374d9'],
+    colors:['#1f8a5c','#a3f0d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3122,7 +3141,7 @@ const SKINS = {
   },
   duskViolet: {
     name:'Dusk Violet', price:420,
-    colors:['#3d2352','#8a5cb5'],
+    colors:['#4a3d4a','#c4a3c4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3130,7 +3149,7 @@ const SKINS = {
   },
   spectralPurple: {
     name:'Spectral Purple', price:455,
-    colors:['#2f1a3d','#9d6bd9'],
+    colors:['#8a5c5c','#f0d4d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3138,7 +3157,7 @@ const SKINS = {
   },
   archAmethyst: {
     name:'Arch Amethyst', price:490,
-    colors:['#3d1a52','#a374d9'],
+    colors:['#8a3d6b','#e09ac9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3146,7 +3165,7 @@ const SKINS = {
   },
   wraithFin: {
     name:'Wraith Fin', price:510,
-    colors:['#0e0e14','#c93d3d'],
+    colors:['#5c8a1f','#d4f0a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -3154,7 +3173,7 @@ const SKINS = {
   },
   gorgonWing: {
     name:'Gorgon Wing', price:525,
-    colors:['#1a2e1a','#d9524d'],
+    colors:['#8a8a1f','#f0f0a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -3163,7 +3182,7 @@ const SKINS = {
   },
   nightmareSeraph: {
     name:'Nightmare Seraph', price:540,
-    colors:['#1a1a3d','#e05c5c'],
+    colors:['#8a1f3d','#f0a3b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -3172,7 +3191,7 @@ const SKINS = {
   },
   ashenDemon: {
     name:'Ashen Demon', price:555,
-    colors:['#2e1a0e','#e8895c'],
+    colors:['#3d8a1f','#b3f0a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawHorns(c,r,colors[1]);
@@ -3181,7 +3200,7 @@ const SKINS = {
   },
   bloodWraith: {
     name:'Blood Wraith', price:570,
-    colors:['#0e2e2e','#d9524d'],
+    colors:['#8a5c3d','#f0d4b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -3191,7 +3210,7 @@ const SKINS = {
   },
   cinderAngel: {
     name:'Cinder Angel', price:585,
-    colors:['#3d3d3d','#c93d3d'],
+    colors:['#8a5c1f','#f0d4a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -3199,7 +3218,7 @@ const SKINS = {
   },
   shadowSeraph: {
     name:'Shadow Seraph', price:600,
-    colors:['#1a0e2e','#f2895c'],
+    colors:['#1f5c5c','#a3d4d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -3208,7 +3227,7 @@ const SKINS = {
   },
   duskDemon: {
     name:'Dusk Demon', price:615,
-    colors:['#0e1a2e','#e05c5c'],
+    colors:['#732a4a','#d973a8'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -3217,7 +3236,7 @@ const SKINS = {
   },
   emberArchon: {
     name:'Ember Archon', price:630,
-    colors:['#2e0e1a','#f0a23d'],
+    colors:['#3d5c8a','#b3d4f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawHorns(c,r,colors[1]);
@@ -3226,7 +3245,7 @@ const SKINS = {
   },
   obsidianReaper: {
     name:'Obsidian Reaper', price:645,
-    colors:['#141414','#b52f2f'],
+    colors:['#3d8a5c','#b3f0d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -3236,7 +3255,7 @@ const SKINS = {
   },
   hellwing: {
     name:'Hellwing', price:660,
-    colors:['#1a2e2e','#e8735c'],
+    colors:['#6b8a3d','#c9e09a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -3244,7 +3263,7 @@ const SKINS = {
   },
   ravenSeraph: {
     name:'Raven Seraph', price:675,
-    colors:['#2e2e0e','#d9524d'],
+    colors:['#1f1f8a','#a3a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -3253,7 +3272,7 @@ const SKINS = {
   },
   infernoWraith: {
     name:'Inferno Wraith', price:700,
-    colors:['#0a0a12','#c93d3d'],
+    colors:['#6b6b6b','#c9c9c9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -3262,7 +3281,7 @@ const SKINS = {
   },
   bonewingDrake: {
     name:'Bonewing Drake', price:725,
-    colors:['#1a3d2e','#e05c5c'],
+    colors:['#5c1f1f','#d4a3a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawHorns(c,r,colors[1]);
@@ -3271,7 +3290,7 @@ const SKINS = {
   },
   scarletDemonII: {
     name:'Scarlet Demon II', price:750,
-    colors:['#3d1a1a','#f2895c'],
+    colors:['#4a4a2a','#c4c47a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -3281,7 +3300,7 @@ const SKINS = {
   },
   nightSeraphim: {
     name:'Night Seraphim', price:775,
-    colors:['#12121a','#d9524d'],
+    colors:['#3d6b8a','#9ac9e0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -3289,7 +3308,7 @@ const SKINS = {
   },
   doomAngel: {
     name:'Doom Angel', price:800,
-    colors:['#2e1a2e','#e8735c'],
+    colors:['#1f8a3d','#a3f0b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -3298,7 +3317,7 @@ const SKINS = {
   },
   wraithlord: {
     name:'Wraithlord', price:830,
-    colors:['#1a2e3d','#c93d3d'],
+    colors:['#8a1f5c','#f0a3d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -3307,7 +3326,7 @@ const SKINS = {
   },
   emberDemonLord: {
     name:'Ember Demonlord', price:865,
-    colors:['#3d2e1a','#e05c5c'],
+    colors:['#6b3d8a','#c99ae0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawHorns(c,r,colors[1]);
@@ -3316,7 +3335,7 @@ const SKINS = {
   },
   bloodSovereignII: {
     name:'Blood Sovereign II', price:900,
-    colors:['#0e2e1a','#f0a23d'],
+    colors:['#5c1f8a','#d4a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[0],colors[1]);
@@ -3326,32 +3345,32 @@ const SKINS = {
   },
   mossAgate: {
     name:'Moss Agate', price:44,
-    colors:['#6b8f5c','#a8c48a'],
+    colors:['#f0ece0','#ffffff'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   paleCoral: {
     name:'Pale Coral', price:49,
-    colors:['#c98a8a','#f0c9c9'],
+    colors:['#2a2a2a','#7a7a7a'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   duskyClay: {
     name:'Dusky Clay', price:54,
-    colors:['#a3735c','#d9ac94'],
+    colors:['#8a3d1f','#f0b38a'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   seaglassGrey: {
     name:'Seaglass Grey', price:59,
-    colors:['#7a9494','#c4d9d9'],
+    colors:['#8a6b3d','#e0c99a'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   sandyOlive: {
     name:'Sandy Olive', price:64,
-    colors:['#9e9e5c','#d4d49e'],
+    colors:['#3d4a4a','#a3c4c4'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   washedDenim: {
     name:'Washed Denim', price:69,
-    colors:['#5c7a9e','#a3c4e0'],
+    colors:['#2a4a73','#73a8d9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3359,7 +3378,7 @@ const SKINS = {
   },
   paleRust: {
     name:'Pale Rust', price:74,
-    colors:['#b5714a','#e0a883'],
+    colors:['#4a2a73','#a873d9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3367,17 +3386,17 @@ const SKINS = {
   },
   coveMint: {
     name:'Cove Mint', price:79,
-    colors:['#5ca38a','#a8e0cc'],
+    colors:['#2a4a4a','#7ac4c4'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   shellPink: {
     name:'Shell Pink', price:84,
-    colors:['#d9a3a3','#f5dcdc'],
+    colors:['#3d1f8a','#b3a3f0'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   driedKelp: {
     name:'Dried Kelp', price:90,
-    colors:['#7a7a4a','#c4c48a'],
+    colors:['#4a4a3d','#c4c4a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3385,7 +3404,7 @@ const SKINS = {
   },
   paleCobalt: {
     name:'Pale Cobalt', price:96,
-    colors:['#4a6b9e','#94b8e0'],
+    colors:['#8a3d5c','#f0b3d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3393,12 +3412,12 @@ const SKINS = {
   },
   muddyOlive: {
     name:'Muddy Olive', price:103,
-    colors:['#6b6b3d','#a8a873'],
+    colors:['#5c8a3d','#d4f0b3'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   twilightGrey: {
     name:'Twilight Grey', price:109,
-    colors:['#5c6b7a','#a3b3c4'],
+    colors:['#4a2a4a','#c47ac4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3406,7 +3425,7 @@ const SKINS = {
   },
   coralWashed: {
     name:'Coral Washed', price:115,
-    colors:['#c98f7a','#f0d4c4'],
+    colors:['#2a734a','#73d9a8'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3414,12 +3433,12 @@ const SKINS = {
   },
   sagebrush: {
     name:'Sagebrush', price:120,
-    colors:['#7a9463','#c4e0a8'],
+    colors:['#1f5c8a','#a3d4f0'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   dovetail: {
     name:'Dovetail', price:124,
-    colors:['#8a8a94','#dcdce0'],
+    colors:['#5c3d8a','#d4b3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3427,7 +3446,7 @@ const SKINS = {
   },
   paleTerracotta: {
     name:'Pale Terracotta', price:128,
-    colors:['#b5735c','#e0ac94'],
+    colors:['#1f3d8a','#a3b3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3435,12 +3454,12 @@ const SKINS = {
   },
   mistyJade: {
     name:'Misty Jade', price:131,
-    colors:['#6b9e7a','#a8e0c4'],
+    colors:['#0a0a0a','#5c5c5c'],
     draw(c,r,tail,colors){ drawBasicFish(c,r,tail,colors[0],colors[1]); }
   },
   driftwoodGrey: {
     name:'Driftwood Grey', price:134,
-    colors:['#7a7268','#c4bcb0'],
+    colors:['#734a2a','#d9a873'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3448,7 +3467,7 @@ const SKINS = {
   },
   paleAzure: {
     name:'Pale Azure', price:137,
-    colors:['#6b94b5','#b3d9f0'],
+    colors:['#3d8a6b','#9ae0c9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3456,7 +3475,7 @@ const SKINS = {
   },
   goldDapple: {
     name:'Gold Dapple', price:141,
-    colors:['#d9b03d','#f5e0a3'],
+    colors:['#4a732a','#a8d973'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3464,7 +3483,7 @@ const SKINS = {
   },
   honeyshell: {
     name:'Honeyshell', price:145,
-    colors:['#c9973d','#f0d090'],
+    colors:['#1f8a5c','#a3f0d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3472,7 +3491,7 @@ const SKINS = {
   },
   amberFin: {
     name:'Amber Fin', price:150,
-    colors:['#d4a23d','#f0d488'],
+    colors:['#4a3d4a','#c4a3c4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3480,7 +3499,7 @@ const SKINS = {
   },
   goldenTide: {
     name:'Golden Tide', price:155,
-    colors:['#e0b53d','#f7e6a3'],
+    colors:['#8a5c5c','#f0d4d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3488,7 +3507,7 @@ const SKINS = {
   },
   sunwake: {
     name:'Sunwake', price:160,
-    colors:['#d9c440','#f5edaa'],
+    colors:['#8a3d6b','#e09ac9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3496,7 +3515,7 @@ const SKINS = {
   },
   brasswing: {
     name:'Brasswing', price:165,
-    colors:['#c9a83d','#eeda94'],
+    colors:['#5c8a1f','#d4f0a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3504,7 +3523,7 @@ const SKINS = {
   },
   goldcrest: {
     name:'Goldcrest', price:170,
-    colors:['#e0c04d','#f7e8b3'],
+    colors:['#8a8a1f','#f0f0a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3512,7 +3531,7 @@ const SKINS = {
   },
   honeyReef: {
     name:'Honey Reef', price:175,
-    colors:['#d9a83d','#f0d494'],
+    colors:['#8a1f3d','#f0a3b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3520,7 +3539,7 @@ const SKINS = {
   },
   saffronFin: {
     name:'Saffron Fin', price:180,
-    colors:['#e0a83d','#f2ce8a'],
+    colors:['#3d8a1f','#b3f0a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3528,7 +3547,7 @@ const SKINS = {
   },
   goldstreamII: {
     name:'Goldstream II', price:184,
-    colors:['#d4b83d','#f0e0a0'],
+    colors:['#8a5c3d','#f0d4b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3536,7 +3555,7 @@ const SKINS = {
   },
   marigoldTideII: {
     name:'Marigold Tide II', price:188,
-    colors:['#e0b03d','#f5dca0'],
+    colors:['#8a5c1f','#f0d4a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3544,7 +3563,7 @@ const SKINS = {
   },
   citrineGlow: {
     name:'Citrine Glow', price:192,
-    colors:['#d9c93d','#f5eeaa'],
+    colors:['#1f5c5c','#a3d4d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3552,7 +3571,7 @@ const SKINS = {
   },
   sunlitScaleIII: {
     name:'Sunlit Scale III', price:196,
-    colors:['#e0c94d','#f7edb3'],
+    colors:['#732a4a','#d973a8'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3560,7 +3579,7 @@ const SKINS = {
   },
   goldenReefII: {
     name:'Golden Reef II', price:199,
-    colors:['#c9a23d','#eed08a'],
+    colors:['#3d5c8a','#b3d4f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3568,7 +3587,7 @@ const SKINS = {
   },
   honeyglow: {
     name:'Honeyglow', price:203,
-    colors:['#d9ad3d','#f2d998'],
+    colors:['#3d8a5c','#b3f0d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3576,7 +3595,7 @@ const SKINS = {
   },
   goldwhisper: {
     name:'Goldwhisper', price:206,
-    colors:['#e0b83d','#f5e2a0'],
+    colors:['#6b8a3d','#c9e09a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3584,7 +3603,7 @@ const SKINS = {
   },
   sunkissedIII: {
     name:'Sunkissed III', price:209,
-    colors:['#d4a83d','#f0d494'],
+    colors:['#1f1f8a','#a3a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3592,7 +3611,7 @@ const SKINS = {
   },
   daffodilTideII: {
     name:'Daffodil Tide II', price:212,
-    colors:['#e0d13d','#f7f0a3'],
+    colors:['#6b6b6b','#c9c9c9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3600,7 +3619,7 @@ const SKINS = {
   },
   goldenHorizon: {
     name:'Golden Horizon', price:214,
-    colors:['#d9b83d','#f2e0a0'],
+    colors:['#5c1f1f','#d4a3a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3608,7 +3627,7 @@ const SKINS = {
   },
   amberglass: {
     name:'Amberglass', price:215,
-    colors:['#c99a3d','#eecf8a'],
+    colors:['#4a4a2a','#c4c47a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3616,7 +3635,7 @@ const SKINS = {
   },
   violetShoal: {
     name:'Violet Shoal', price:225,
-    colors:['#6b4a9e','#b39ddb'],
+    colors:['#3d6b8a','#9ac9e0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3624,7 +3643,7 @@ const SKINS = {
   },
   lavenderTideIII: {
     name:'Lavender Tide III', price:240,
-    colors:['#7a5cb5','#c4aee8'],
+    colors:['#1f8a3d','#a3f0b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3632,7 +3651,7 @@ const SKINS = {
   },
   plumCurrent: {
     name:'Plum Current', price:260,
-    colors:['#5c3a8a','#9d7ac4'],
+    colors:['#8a1f5c','#f0a3d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3640,7 +3659,7 @@ const SKINS = {
   },
   mauveDepthsII: {
     name:'Mauve Depths II', price:280,
-    colors:['#6b4a7d','#ae8ac4'],
+    colors:['#6b3d8a','#c99ae0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3648,7 +3667,7 @@ const SKINS = {
   },
   orchidGlowII: {
     name:'Orchid Glow II', price:300,
-    colors:['#7d4aa3','#c49de0'],
+    colors:['#5c1f8a','#d4a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3656,7 +3675,7 @@ const SKINS = {
   },
   grapeTide: {
     name:'Grape Tide', price:320,
-    colors:['#5c3373','#9d6bb5'],
+    colors:['#f0ece0','#ffffff'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3664,7 +3683,7 @@ const SKINS = {
   },
   wisteriaBloom: {
     name:'Wisteria Bloom', price:340,
-    colors:['#6b52a3','#ae94e0'],
+    colors:['#2a2a2a','#7a7a7a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3672,7 +3691,7 @@ const SKINS = {
   },
   indigoTideIII: {
     name:'Indigo Tide III', price:360,
-    colors:['#4a3388','#8a6bc9'],
+    colors:['#8a3d1f','#f0b38a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3680,7 +3699,7 @@ const SKINS = {
   },
   violetEmber: {
     name:'Violet Ember', price:380,
-    colors:['#5c3d9e','#a389e0'],
+    colors:['#8a6b3d','#e0c99a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3688,7 +3707,7 @@ const SKINS = {
   },
   purpleShoal: {
     name:'Purple Shoal', price:400,
-    colors:['#6b3d9e','#b38ae0'],
+    colors:['#3d4a4a','#a3c4c4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3696,7 +3715,7 @@ const SKINS = {
   },
   amethystDeep: {
     name:'Amethyst Deep', price:420,
-    colors:['#5c2f8a','#9d6be0'],
+    colors:['#2a4a73','#73a8d9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3704,7 +3723,7 @@ const SKINS = {
   },
   twilightAmethyst: {
     name:'Twilight Amethyst', price:440,
-    colors:['#4a2f73','#8a5cc4'],
+    colors:['#4a2a73','#a873d9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3712,7 +3731,7 @@ const SKINS = {
   },
   royalViolet: {
     name:'Royal Violet', price:460,
-    colors:['#5c3d99','#a389e8'],
+    colors:['#2a4a4a','#7ac4c4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3720,7 +3739,7 @@ const SKINS = {
   },
   mysticLilac: {
     name:'Mystic Lilac', price:480,
-    colors:['#6b4aad','#c4a3f0'],
+    colors:['#3d1f8a','#b3a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawStripe(c,r,colors[1],0.45);
@@ -3728,7 +3747,7 @@ const SKINS = {
   },
   amethystSovereign: {
     name:'Amethyst Sovereign', price:495,
-    colors:['#4a2f8a','#9970d9'],
+    colors:['#4a4a3d','#c4c4a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.25,-0.15],[0.15,0.15]],0.07);
@@ -3736,7 +3755,7 @@ const SKINS = {
   },
   crimsonHammerhead: {
     name:'Crimson Hammerhead', price:510,
-    colors:['#7a1f1f','#d94d4d'],
+    colors:['#8a3d5c','#f0b3d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       c.save(); c.fillStyle = colors[0];
@@ -3747,7 +3766,7 @@ const SKINS = {
   },
   bloodEel: {
     name:'Blood Eel', price:530,
-    colors:['#5c1414','#c93d3d'],
+    colors:['#5c8a3d','#d4f0b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawTentacles(c,r,tail,colors[1]);
@@ -3755,7 +3774,7 @@ const SKINS = {
   },
   scarletDragonfin: {
     name:'Scarlet Dragonfin', price:550,
-    colors:['#8a1f1f','#e05c5c'],
+    colors:['#4a2a4a','#c47ac4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawHorns(c,r,colors[1]);
@@ -3764,7 +3783,7 @@ const SKINS = {
   },
   garnetHammerhead: {
     name:'Garnet Hammerhead', price:570,
-    colors:['#731919','#c43d3d'],
+    colors:['#2a734a','#73d9a8'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       c.save(); c.fillStyle = colors[1];
@@ -3774,7 +3793,7 @@ const SKINS = {
   },
   rubyBarracuda: {
     name:'Ruby Barracuda', price:590,
-    colors:['#8f1414','#e0504d'],
+    colors:['#1f5c8a','#a3d4f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawSwordBill(c,r,colors[0]);
@@ -3782,7 +3801,7 @@ const SKINS = {
   },
   crimsonWyrm: {
     name:'Crimson Wyrm', price:610,
-    colors:['#6b1010','#b52f2f'],
+    colors:['#5c3d8a','#d4b3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawHorns(c,r,colors[0]);
@@ -3791,7 +3810,7 @@ const SKINS = {
   },
   bloodShark: {
     name:'Blood Shark', price:630,
-    colors:['#7a1a1a','#d94d4d'],
+    colors:['#1f3d8a','#a3b3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawSharkDorsal(c,r,colors[0]);
@@ -3802,7 +3821,7 @@ const SKINS = {
   },
   mahoganyMarlin: {
     name:'Mahogany Marlin', price:650,
-    colors:['#5c1414','#a33030'],
+    colors:['#0a0a0a','#5c5c5c'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawSwordBill(c,r,colors[1]);
@@ -3811,7 +3830,7 @@ const SKINS = {
   },
   vermilionKraken: {
     name:'Vermilion Kraken', price:670,
-    colors:['#731919','#d4504d'],
+    colors:['#734a2a','#d9a873'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawTentacles(c,r,tail,colors[1]);
@@ -3820,7 +3839,7 @@ const SKINS = {
   },
   infernalHammerhead: {
     name:'Infernal Hammerhead', price:690,
-    colors:['#661010','#c43d3d'],
+    colors:['#3d8a6b','#9ae0c9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       c.save(); c.fillStyle = colors[0];
@@ -3831,7 +3850,7 @@ const SKINS = {
   },
   bloodreaverFin: {
     name:'Bloodreaver Fin', price:705,
-    colors:['#5c1414','#a83030'],
+    colors:['#4a732a','#a8d973'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawSharkDorsal(c,r,colors[1]);
@@ -3840,7 +3859,7 @@ const SKINS = {
   },
   carnelianSerpent: {
     name:'Carnelian Serpent', price:715,
-    colors:['#731c1c','#d45c4d'],
+    colors:['#1f8a5c','#a3f0d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawTentacles(c,r,tail,colors[0]);
@@ -3849,7 +3868,7 @@ const SKINS = {
   },
   rustbladeShark: {
     name:'Rustblade Shark', price:725,
-    colors:['#7a1f14','#c9503d'],
+    colors:['#4a3d4a','#c4a3c4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawSharkDorsal(c,r,colors[0]);
@@ -3858,7 +3877,7 @@ const SKINS = {
   },
   crimsonLeviathan: {
     name:'Crimson Leviathan', price:735,
-    colors:['#5c1010','#b52f2f'],
+    colors:['#8a5c5c','#f0d4d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawHorns(c,r,colors[1]);
@@ -3868,7 +3887,7 @@ const SKINS = {
   },
   bloodforgedMarlin: {
     name:'Bloodforged Marlin', price:745,
-    colors:['#661414','#d4504d'],
+    colors:['#8a3d6b','#e09ac9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawSwordBill(c,r,colors[0]);
@@ -3878,7 +3897,7 @@ const SKINS = {
   },
   emeraldHammerhead: {
     name:'Emerald Hammerhead', price:755,
-    colors:['#1f5c3d','#3ddb7a'],
+    colors:['#5c8a1f','#d4f0a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       c.save(); c.fillStyle = colors[0];
@@ -3889,7 +3908,7 @@ const SKINS = {
   },
   jadeMarlin: {
     name:'Jade Marlin', price:775,
-    colors:['#194d33','#4de08f'],
+    colors:['#8a8a1f','#f0f0a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawSwordBill(c,r,colors[0]);
@@ -3898,7 +3917,7 @@ const SKINS = {
   },
   viperfishGreen: {
     name:'Viperfish Green', price:795,
-    colors:['#0f3d26','#33c46b'],
+    colors:['#8a1f3d','#f0a3b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       c.save(); c.fillStyle = '#eafff2';
@@ -3908,7 +3927,7 @@ const SKINS = {
   },
   emeraldSwordfish: {
     name:'Emerald Swordfish', price:815,
-    colors:['#144d33','#3ddb8a'],
+    colors:['#3d8a1f','#b3f0a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawSwordBill(c,r,colors[1]);
@@ -3916,7 +3935,7 @@ const SKINS = {
   },
   gatorpikeGreen: {
     name:'Gatorpike Green', price:835,
-    colors:['#1f4d26','#5cc466'],
+    colors:['#8a5c3d','#f0d4b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.3,-0.15],[0.15,0.15],[-0.1,-0.28]],0.06);
@@ -3925,7 +3944,7 @@ const SKINS = {
   },
   jadeReefShark: {
     name:'Jade Reef Shark', price:855,
-    colors:['#194033','#3dc499'],
+    colors:['#8a5c1f','#f0d4a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawSharkDorsal(c,r,colors[1]);
@@ -3936,7 +3955,7 @@ const SKINS = {
   },
   serpentineEmerald: {
     name:'Serpentine Emerald', price:875,
-    colors:['#0f3326','#33dba3'],
+    colors:['#1f5c5c','#a3d4d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawTentacles(c,r,tail,colors[1]);
@@ -3944,7 +3963,7 @@ const SKINS = {
   },
   malachiteHammerhead: {
     name:'Malachite Hammerhead', price:895,
-    colors:['#194d2f','#3dc477'],
+    colors:['#732a4a','#d973a8'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       c.save(); c.fillStyle = colors[1];
@@ -3954,7 +3973,7 @@ const SKINS = {
   },
   emeraldBarracuda: {
     name:'Emerald Barracuda', price:910,
-    colors:['#164033','#3dd499'],
+    colors:['#3d5c8a','#b3d4f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawSwordBill(c,r,colors[0]);
@@ -3963,7 +3982,7 @@ const SKINS = {
   },
   junglePike: {
     name:'Jungle Pike', price:925,
-    colors:['#1f4020','#5cbf5c'],
+    colors:['#3d8a5c','#b3f0d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawDots(c,r,colors[1],[[-0.3,-0.1],[0.15,0.2],[-0.1,-0.3],[0.25,-0.1]],0.05);
@@ -3971,7 +3990,7 @@ const SKINS = {
   },
   emeraldKraken: {
     name:'Emerald Kraken', price:940,
-    colors:['#0f3d33','#33c4a3'],
+    colors:['#6b8a3d','#c9e09a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawTentacles(c,r,tail,colors[1]);
@@ -3980,7 +3999,7 @@ const SKINS = {
   },
   jadefinPredator: {
     name:'Jadefin Predator', price:955,
-    colors:['#194933','#3ddba3'],
+    colors:['#1f1f8a','#a3a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawSharkDorsal(c,r,colors[1]);
@@ -3989,7 +4008,7 @@ const SKINS = {
   },
   viridianMako: {
     name:'Viridian Mako', price:965,
-    colors:['#123326','#3dc48f'],
+    colors:['#6b6b6b','#c9c9c9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawSharkDorsal(c,r,colors[0]);
@@ -3998,7 +4017,7 @@ const SKINS = {
   },
   emperorEmeraldShark: {
     name:'Emperor Emerald Shark', price:980,
-    colors:['#0f4030','#3ddba0'],
+    colors:['#5c1f1f','#d4a3a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawSharkDorsal(c,r,colors[1]);
@@ -4010,7 +4029,7 @@ const SKINS = {
   },
   emeraldTitan: {
     name:'Emerald Titan', price:995,
-    colors:['#0a3326','#3ddb99'],
+    colors:['#4a4a2a','#c4c47a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawSharkDorsal(c,r,colors[1]);
@@ -4020,7 +4039,7 @@ const SKINS = {
   },
   seraphFinPrime: {
     name:'Seraph Fin Prime', price:1010,
-    colors:['#f0f0f5','#ffd9a3'],
+    colors:['#3d6b8a','#9ac9e0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,'#ffffff',colors[1]);
@@ -4029,7 +4048,7 @@ const SKINS = {
   },
   duskDemonFin: {
     name:'Dusk Demon Fin', price:1040,
-    colors:['#2a0f14','#e0504d'],
+    colors:['#1f8a3d','#a3f0b3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawHorns(c,r,colors[1]);
@@ -4038,7 +4057,7 @@ const SKINS = {
   },
   celestialBloop: {
     name:'Celestial Bloop', price:1070,
-    colors:['#2a1a4a','#a389e0'],
+    colors:['#8a1f5c','#f0a3d4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawTentacles(c,r,tail,colors[1]);
@@ -4047,7 +4066,7 @@ const SKINS = {
   },
   voidLeviathanPrime: {
     name:'Void Leviathan Prime', price:1100,
-    colors:['#0a0a14','#8a6fd9'],
+    colors:['#6b3d8a','#c99ae0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawHorns(c,r,colors[1]);
@@ -4056,7 +4075,7 @@ const SKINS = {
   },
   archangelKoi: {
     name:'Archangel Koi', price:1130,
-    colors:['#f5f0e0','#5c8fd9'],
+    colors:['#5c1f8a','#d4a3f0'],
     draw(c,r,tail,colors){
       drawKoiFish(c,r,tail,colors[0],'#e8b93d','#2a2a2a');
       drawAngelWings(c,r,'#ffffff',colors[1]);
@@ -4065,7 +4084,7 @@ const SKINS = {
   },
   infernalSovereign: {
     name:'Infernal Sovereign', price:1160,
-    colors:['#1a0a0a','#e05c3d'],
+    colors:['#f0ece0','#ffffff'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawHorns(c,r,colors[1]);
@@ -4075,7 +4094,7 @@ const SKINS = {
   },
   mythicKraken: {
     name:'Mythic Kraken', price:1190,
-    colors:['#0f1a33','#4dd9c4'],
+    colors:['#2a2a2a','#7a7a7a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawTentacles(c,r,tail,colors[1]);
@@ -4084,7 +4103,7 @@ const SKINS = {
   },
   prismaticSeraph: {
     name:'Prismatic Seraph', price:1220,
-    colors:['#ffffff','#ffd9f0'],
+    colors:['#8a3d1f','#f0b38a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,'#f5e0ff',colors[1]);
@@ -4093,7 +4112,7 @@ const SKINS = {
   },
   shadowfangDemon: {
     name:'Shadowfang Demon', price:1250,
-    colors:['#140a0a','#c9403d'],
+    colors:['#8a6b3d','#e0c99a'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawHorns(c,r,colors[1]);
@@ -4103,7 +4122,7 @@ const SKINS = {
   },
   oceanicDeity: {
     name:'Oceanic Deity', price:1280,
-    colors:['#0a2a4a','#5cc4ff'],
+    colors:['#3d4a4a','#a3c4c4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawAngelWings(c,r,colors[1],'#ffffff');
@@ -4113,7 +4132,7 @@ const SKINS = {
   },
   bloopGodling: {
     name:'Bloop Godling', price:1310,
-    colors:['#2a1a3d','#d97fe0'],
+    colors:['#2a4a73','#73a8d9'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawTentacles(c,r,tail,colors[1]);
@@ -4122,7 +4141,7 @@ const SKINS = {
   },
   cherubicKoi: {
     name:'Cherubic Koi', price:1340,
-    colors:['#fff5e0','#ffb3d9'],
+    colors:['#4a2a73','#a873d9'],
     draw(c,r,tail,colors){
       drawKoiFish(c,r,tail,colors[0],'#ff8fb3','#2a2a2a');
       drawAngelWings(c,r,'#ffe0ee',colors[1]);
@@ -4131,7 +4150,7 @@ const SKINS = {
   },
   abyssalArchdemon: {
     name:'Abyssal Archdemon', price:1370,
-    colors:['#0a0505','#d94d3d'],
+    colors:['#2a4a4a','#7ac4c4'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawHorns(c,r,colors[1]);
@@ -4141,7 +4160,7 @@ const SKINS = {
   },
   starlightWyrm: {
     name:'Starlight Wyrm', price:1420,
-    colors:['#0a1a3d','#a3c9ff'],
+    colors:['#3d1f8a','#b3a3f0'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawHorns(c,r,colors[1]);
@@ -4151,7 +4170,7 @@ const SKINS = {
   },
   theFallenAndTheRisen: {
     name:'The Fallen and the Risen', price:1500,
-    colors:['#0a0a0a','#ffd9a3'],
+    colors:['#4a4a3d','#c4c4a3'],
     draw(c,r,tail,colors){
       drawBasicFish(c,r,tail,colors[0],colors[1]);
       drawHorns(c,r,'#c9403d');
@@ -4867,7 +4886,14 @@ function renderInventory(){
     grid.innerHTML = '<div class="empty-note">No skins owned yet — visit the Shop!</div>';
     return;
   }
-  save.ownedSkins.forEach(key=>{
+  // lowest rarity first, rarest last
+  const sortedOwned = [...save.ownedSkins].filter(key=>SKINS[key]).sort((a,b)=>{
+    const ra = RARITY_ORDER.indexOf(rarityOf(SKINS[a]));
+    const rb = RARITY_ORDER.indexOf(rarityOf(SKINS[b]));
+    if(ra !== rb) return ra - rb;
+    return SKINS[a].price - SKINS[b].price;
+  });
+  sortedOwned.forEach(key=>{
     const skin = SKINS[key];
     if(!skin) return;
     const equipped = save.activeSkin === key;
@@ -5056,6 +5082,7 @@ spinBtn.addEventListener('click', spinWheel);
 
 /* ============ ACHIEVEMENTS MENU WIRING ============ */
 const achievementsMenu = document.getElementById('achievementsMenu');
+const codeMenu = document.getElementById('codeMenu');
 document.getElementById('achievementsBtn').addEventListener('click', ()=>{
   mainMenu.classList.add('hidden');
   achievementsMenu.classList.remove('hidden');
@@ -5065,6 +5092,68 @@ document.getElementById('closeAchievementsBtn').addEventListener('click', closeA
 document.getElementById('backFromAchievementsBtn').addEventListener('click', closeAchievements);
 function closeAchievements(){
   achievementsMenu.classList.add('hidden');
+  mainMenu.classList.remove('hidden');
+  updateQuestMenuUI();
+}
+
+/* ============ REDEEM CODES ============ */
+// Codes are matched case-insensitively with whitespace trimmed, so "Fisshy.io",
+// "fisshy.io", and " FISSHY.IO " all work the same.
+const REDEEM_CODES = {
+  'fisshy.io': { reward:100, label:'+100 Fishy Food' },
+  'free-food': { reward:1000, label:'+1000 Fishy Food' }
+};
+// In-game hints toward the codes above, without spelling them out directly —
+// shown right in the redeem panel so players have something to go find.
+const CODE_HINTS = [
+  'One code hides in the name of this very site — but it\'s spelled a little differently than you\'d expect ("fishy" isn\'t quite right).',
+  'Another code is refreshingly simple: two words, hyphenated, promising exactly what every hungry fish wants.'
+];
+function normalizeCode(raw){
+  return (raw||'').trim().toLowerCase();
+}
+function renderCodeHints(){
+  document.getElementById('codeHintsList').innerHTML = CODE_HINTS.map(h=>`<div style="margin-bottom:6px;">• ${h}</div>`).join('');
+}
+function redeemCode(){
+  const input = document.getElementById('codeInput');
+  const msg = document.getElementById('codeMessage');
+  const code = normalizeCode(input.value);
+  if(!code){ msg.style.color = '#d99a8a'; msg.textContent = 'Enter a code first.'; return; }
+  const def = REDEEM_CODES[code];
+  if(!def){
+    msg.style.color = '#d99a8a';
+    msg.textContent = 'That code isn\'t valid.';
+    SFX.click();
+    return;
+  }
+  if(!save.redeemedCodes) save.redeemedCodes = [];
+  if(save.redeemedCodes.includes(code)){
+    msg.style.color = '#d99a8a';
+    msg.textContent = 'You already redeemed that code.';
+    return;
+  }
+  save.redeemedCodes.push(code);
+  save.currency += def.reward;
+  persist();
+  updateCurrencyDisplays();
+  msg.style.color = '#a8d0c6';
+  msg.textContent = `Code redeemed! ${def.label}`;
+  input.value = '';
+  SFX.wheelWin();
+}
+document.getElementById('codeBtn').addEventListener('click', ()=>{
+  mainMenu.classList.add('hidden');
+  codeMenu.classList.remove('hidden');
+  document.getElementById('codeMessage').textContent = '';
+  renderCodeHints();
+});
+document.getElementById('closeCodeBtn').addEventListener('click', closeCodeMenu);
+document.getElementById('backFromCodeBtn').addEventListener('click', closeCodeMenu);
+document.getElementById('submitCodeBtn').addEventListener('click', redeemCode);
+document.getElementById('codeInput').addEventListener('keydown', e=>{ if(e.key==='Enter') redeemCode(); });
+function closeCodeMenu(){
+  codeMenu.classList.add('hidden');
   mainMenu.classList.remove('hidden');
   updateQuestMenuUI();
 }
