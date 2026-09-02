@@ -401,6 +401,33 @@
   </div>
 </div>
 
+<!-- ADMIN PANEL (secret — opened via the code panel) -->
+<div class="overlay hidden" id="adminMenu">
+  <div class="panel" style="position:relative;">
+    <button class="close-x" id="closeAdminBtn"><svg class="icon"><use href="#icon-close"/></svg></button>
+    <div class="title" style="font-size:1.7em;">Admin Panel</div>
+    <div class="subtitle" style="margin-bottom:14px;">local testing tools</div>
+
+    <div class="quest-box" style="text-align:left;">
+      <div class="quest-title" style="margin-bottom:8px;">Give Fishy Food</div>
+      <div style="display:flex; gap:8px;">
+        <input id="adminFoodInput" type="number" min="1" value="1000" style="flex:1; padding:9px; border-radius:8px; border:1px solid rgba(210,232,240,0.2); background:rgba(0,0,0,0.2); color:#eaf4f7; text-align:center;">
+        <button class="btn btn-primary" id="adminGiveFoodBtn" style="width:auto; margin:0; padding:9px 16px;">Give</button>
+      </div>
+    </div>
+
+    <div class="quest-box" style="text-align:left; margin-top:12px;">
+      <div class="quest-title" style="margin-bottom:8px;">Unlock a Skin</div>
+      <select id="adminSkinSelect" style="width:100%; padding:9px; border-radius:8px; border:1px solid rgba(210,232,240,0.2); background:rgba(0,0,0,0.2); color:#eaf4f7; margin-bottom:8px;"></select>
+      <button class="btn btn-primary" id="adminUnlockSkinBtn" style="margin:0;">Unlock &amp; Equip</button>
+    </div>
+
+    <div id="adminMessage" style="min-height:1.4em; text-align:center; font-weight:700; font-size:0.9em; margin-top:10px; color:#a8d0c6;"></div>
+
+    <button class="btn btn-ghost" id="backFromAdminBtn" style="margin-top:10px;"><svg class="icon"><use href="#icon-back"/></svg> Back to Menu</button>
+  </div>
+</div>
+
 <!-- ACCOUNT MENU -->
 <div class="overlay hidden" id="accountMenu">
   <div class="panel" style="position:relative;">
@@ -1347,15 +1374,13 @@ const SKINS = {
     colors:['#1a0d0d','#c92e2e'],
     draw(c,r,tail,colors){
       if(evilFishImg.complete && evilFishImg.naturalWidth > 0){
-        // Sized to the same diameter (2r) every other skin uses for its body,
-        // so the visible fish and the actual circular hitbox line up —
-        // nothing drawn outside what can actually collide/be eaten.
-        const aspect = evilFishImg.naturalWidth / evilFishImg.naturalHeight;
-        const h = r*2;
-        const w = h*aspect;
+        // Exactly the hitbox's own diameter in both directions (not just
+        // height, with width following the image's aspect ratio) — the
+        // drawn image is the same size as the circular hitbox, full stop.
+        const d = r*2;
         c.save();
         if(EVIL_FISH_FLIP) c.scale(-1,1);
-        c.drawImage(evilFishImg, -w/2, -h/2, w, h);
+        c.drawImage(evilFishImg, -d/2, -d/2, d, d);
         c.restore();
       } else {
         // fallback shown only until the image finishes loading
@@ -1368,14 +1393,11 @@ const SKINS = {
     colors:['#333333','#dddddd'],
     draw(c,r,tail,colors){
       if(rgbFishImg.complete && rgbFishImg.naturalWidth > 0){
-        // Same rule as Evil Fish: sized to the same 2r diameter every skin's
-        // hitbox uses, so what's drawn matches exactly what can collide.
-        const aspect = rgbFishImg.naturalWidth / rgbFishImg.naturalHeight;
-        const h = r*2;
-        const w = h*aspect;
+        // Same rule as Evil Fish: exact hitbox diameter in both directions.
+        const d = r*2;
         c.save();
         if(RGB_FISH_FLIP) c.scale(-1,1);
-        c.drawImage(rgbFishImg, -w/2, -h/2, w, h);
+        c.drawImage(rgbFishImg, -d/2, -d/2, d, d);
         c.restore();
       } else {
         drawBasicFish(c,r,tail,colors[0],colors[1]);
@@ -6647,11 +6669,20 @@ function normalizeCode(raw){
 function renderCodeHints(){
   document.getElementById('codeHintsList').innerHTML = CODE_HINTS.map(h=>`<div style="margin-bottom:6px;">• ${h}</div>`).join('');
 }
+// Secret trigger — typed into the same code box, but it opens a local admin
+// panel instead of granting a reward, and never counts as a "redeemed code".
+const ADMIN_TRIGGER = '---/adminfish/---';
 function redeemCode(){
   const input = document.getElementById('codeInput');
   const msg = document.getElementById('codeMessage');
   const code = normalizeCode(input.value);
   if(!code){ msg.style.color = '#d99a8a'; msg.textContent = 'Enter a code first.'; return; }
+  if(code === ADMIN_TRIGGER){
+    input.value = '';
+    msg.textContent = '';
+    openAdminMenu();
+    return;
+  }
   const def = REDEEM_CODES[code];
   if(!def){
     msg.style.color = '#d99a8a';
@@ -6693,6 +6724,49 @@ function closeCodeMenu(){
   mainMenu.classList.remove('hidden');
   updateQuestMenuUI();
 }
+
+/* ============ ADMIN PANEL (secret, local-only testing tools) ============ */
+const adminMenu = document.getElementById('adminMenu');
+function populateAdminSkinSelect(){
+  const sel = document.getElementById('adminSkinSelect');
+  if(sel.options.length > 0) return; // build once
+  const keys = Object.keys(SKINS).sort((a,b)=> SKINS[a].name.localeCompare(SKINS[b].name));
+  sel.innerHTML = keys.map(k => `<option value="${k}">${SKINS[k].name}${SKINS[k].exclusive?' (exclusive)':''}</option>`).join('');
+}
+function openAdminMenu(){
+  codeMenu.classList.add('hidden');
+  mainMenu.classList.add('hidden');
+  adminMenu.classList.remove('hidden');
+  populateAdminSkinSelect();
+  document.getElementById('adminMessage').textContent = '';
+}
+function closeAdminMenu(){
+  adminMenu.classList.add('hidden');
+  mainMenu.classList.remove('hidden');
+  updateQuestMenuUI();
+}
+document.getElementById('closeAdminBtn').addEventListener('click', closeAdminMenu);
+document.getElementById('backFromAdminBtn').addEventListener('click', closeAdminMenu);
+document.getElementById('adminGiveFoodBtn').addEventListener('click', ()=>{
+  const input = document.getElementById('adminFoodInput');
+  const amount = Math.max(1, Math.floor(Number(input.value) || 0));
+  save.currency += amount;
+  persist();
+  updateCurrencyDisplays();
+  document.getElementById('adminMessage').textContent = `Gave yourself +${amount} Fishy Food.`;
+  SFX.wheelWin();
+});
+document.getElementById('adminUnlockSkinBtn').addEventListener('click', ()=>{
+  const sel = document.getElementById('adminSkinSelect');
+  const key = sel.value;
+  if(!key || !SKINS[key]) return;
+  if(!save.ownedSkins.includes(key)) save.ownedSkins.push(key);
+  if(key === 'evilFish') save.evilFishWonViaWheel = true; // admin grant counts as legitimate ownership
+  save.activeSkin = key;
+  persist();
+  document.getElementById('adminMessage').textContent = `Unlocked and equipped ${SKINS[key].name}.`;
+  SFX.equip();
+});
 
 /* ============ SOUND TOGGLE ============ */
 function updateSoundBtn(){
